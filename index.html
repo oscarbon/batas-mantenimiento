@@ -1,10 +1,14 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+
 <meta charset="UTF-8">
 <title>Solicitud de Bata</title>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
 <style>
+
 body{
 font-family:Arial;
 background:#f4f6f9;
@@ -16,6 +20,8 @@ background:white;
 padding:20px;
 border-radius:12px;
 box-shadow:0 4px 10px rgba(0,0,0,0.1);
+max-width:500px;
+margin:auto;
 }
 
 input{
@@ -41,25 +47,27 @@ background:#27ae60;
 color:white;
 }
 
+.opciones button:hover{
+background:#219150;
+}
+
 .opciones button.seleccionado{
 background:#c0392b;
 transform:scale(1.05);
-}
-
-.opciones button.seleccionado::after{
-content:" ✔";
 }
 
 .btn{
 background:#2e86de;
 color:white;
 }
+
 </style>
 </head>
 
 <body>
 
 <div class="card">
+
 <h2>Solicitud de Bata</h2>
 
 <input type="text" id="empleado" placeholder="Número de empleado">
@@ -68,9 +76,9 @@ color:white;
 <h3>Desperfecto</h3>
 
 <div class="opciones">
-<button onclick="seleccionar('Puño roto', this)">Puño roto</button>
-<button onclick="seleccionar('Tela rasgada', this)">Tela de bata rasgada</button>
-<button onclick="seleccionar('Botones', this)">Botones</button>
+<button onclick="seleccionar('Puño roto',this)">Puño roto</button>
+<button onclick="seleccionar('Tela rasgada',this)">Tela rasgada</button>
+<button onclick="seleccionar('Botones',this)">Botones</button>
 </div>
 
 <div id="extraTela" style="display:none;">
@@ -78,26 +86,24 @@ color:white;
 </div>
 
 <br>
+
 <button class="btn" onclick="enviar()">Enviar Solicitud</button>
+
 <p id="mensaje"></p>
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
 <script>
 
 const SUPABASE_URL="https://uatbsgnqgpklugtwqbjh.supabase.co";
-const SUPABASE_KEY="TU_PUBLIC_KEY";
 
-const supabaseClient=supabase.createClient(
-SUPABASE_URL,
-SUPABASE_KEY
-);
+const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhdGJzZ25xZ3BrbHVndHdxYmpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNzUwNzgsImV4cCI6MjA4ODc1MTA3OH0.XIu4V2xSDswqwJX2rNNxYynhacTVCmv3iS1pOIFFn3Q";
+
+const supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
 
 let desperfectoSeleccionado="";
 
-function seleccionar(tipo, boton){
+function seleccionar(tipo,boton){
 
 desperfectoSeleccionado=tipo;
 
@@ -128,23 +134,30 @@ alert("Especifica qué parte se rasgó");
 return;
 }
 
-let fecha=new Date();
+/* evitar duplicados */
 
-let formato=
-fecha.getFullYear()+"-"+
-String(fecha.getMonth()+1).padStart(2,'0')+"-"+
-String(fecha.getDate()).padStart(2,'0')+" "+
-String(fecha.getHours()).padStart(2,'0')+":"+
-String(fecha.getMinutes()).padStart(2,'0');
+const {data:existente}=await supabaseClient
+.from("solicitudes")
+.select("*")
+.eq("bata",bata)
+.eq("desperfecto",desperfectoSeleccionado)
+.eq("estado","pendiente");
+
+if(existente.length>0){
+alert("Ya existe una solicitud activa para esta bata con ese desperfecto");
+return;
+}
+
+let fecha=new Date().toISOString();
 
 let solicitud={
-empleado,
-bata,
+empleado:empleado,
+bata:bata,
 desperfecto:desperfectoSeleccionado,
 detalle:parteTela || "",
-hora:formato,
-temporal:false,
-estado:"pendiente"
+hora:fecha,
+estado:"pendiente",
+temporal:false
 };
 
 const {error}=await supabaseClient
@@ -153,7 +166,7 @@ const {error}=await supabaseClient
 
 if(error){
 console.log(error);
-alert("Error al enviar solicitud");
+alert("No se pudo enviar la solicitud");
 return;
 }
 
@@ -163,7 +176,6 @@ document.getElementById("empleado").value="";
 document.getElementById("bata").value="";
 document.getElementById("parteTela").value="";
 document.getElementById("extraTela").style.display="none";
-desperfectoSeleccionado="";
 
 document.querySelectorAll(".opciones button").forEach(b=>{
 b.classList.remove("seleccionado");
