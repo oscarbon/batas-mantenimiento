@@ -1,67 +1,19 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
 
+<head>
 <meta charset="UTF-8">
 <title>Solicitud de Bata</title>
 
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<style>
+<script src="js/supabase.js"></script>
+<script src="js/solicitudes.js" defer></script>
 
-body{
-font-family:Arial;
-background:#f4f6f9;
-padding:30px;
-}
+<link rel="stylesheet" href="css/estilos.css">
 
-.card{
-background:white;
-padding:20px;
-border-radius:12px;
-box-shadow:0 4px 10px rgba(0,0,0,0.1);
-max-width:500px;
-margin:auto;
-}
-
-input{
-padding:10px;
-width:100%;
-margin-bottom:15px;
-border-radius:8px;
-border:1px solid #ccc;
-}
-
-button{
-padding:10px 15px;
-border:none;
-border-radius:8px;
-cursor:pointer;
-font-weight:bold;
-margin:5px;
-transition:0.3s;
-}
-
-.opciones button{
-background:#27ae60;
-color:white;
-}
-
-.opciones button:hover{
-background:#219150;
-}
-
-.opciones button.seleccionado{
-background:#c0392b;
-transform:scale(1.05);
-}
-
-.btn{
-background:#2e86de;
-color:white;
-}
-
-</style>
 </head>
 
 <body>
@@ -76,114 +28,24 @@ color:white;
 <h3>Desperfecto</h3>
 
 <div class="opciones">
+
 <button onclick="seleccionar('Puño roto',this)">Puño roto</button>
+
 <button onclick="seleccionar('Tela rasgada',this)">Tela rasgada</button>
+
 <button onclick="seleccionar('Botones',this)">Botones</button>
+
 </div>
 
 <div id="extraTela" style="display:none;">
 <input type="text" id="parteTela" placeholder="¿Qué parte se rasgó?">
 </div>
 
-<br>
-
 <button class="btn" onclick="enviar()">Enviar Solicitud</button>
 
 <p id="mensaje"></p>
 
 </div>
-
-<script>
-
-const SUPABASE_URL="https://uatbsgnqgpklugtwqbjh.supabase.co";
-
-const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhdGJzZ25xZ3BrbHVndHdxYmpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNzUwNzgsImV4cCI6MjA4ODc1MTA3OH0.XIu4V2xSDswqwJX2rNNxYynhacTVCmv3iS1pOIFFn3Q";
-
-const supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-
-let desperfectoSeleccionado="";
-
-function seleccionar(tipo,boton){
-
-desperfectoSeleccionado=tipo;
-
-document.querySelectorAll(".opciones button").forEach(b=>{
-b.classList.remove("seleccionado");
-});
-
-boton.classList.add("seleccionado");
-
-document.getElementById("extraTela").style.display=
-(tipo==="Tela rasgada")?"block":"none";
-
-}
-
-async function enviar(){
-
-let empleado=document.getElementById("empleado").value.trim();
-let bata=document.getElementById("bata").value.trim();
-let parteTela=document.getElementById("parteTela").value.trim();
-
-if(!empleado || !bata || !desperfectoSeleccionado){
-alert("Completa todos los campos");
-return;
-}
-
-if(desperfectoSeleccionado==="Tela rasgada" && !parteTela){
-alert("Especifica qué parte se rasgó");
-return;
-}
-
-/* evitar duplicados */
-
-const {data:existente}=await supabaseClient
-.from("solicitudes")
-.select("*")
-.eq("bata",bata)
-.eq("desperfecto",desperfectoSeleccionado)
-.eq("estado","pendiente");
-
-if(existente.length>0){
-alert("Ya existe una solicitud activa para esta bata con ese desperfecto");
-return;
-}
-
-let fecha=new Date().toISOString();
-
-let solicitud={
-empleado:empleado,
-bata:bata,
-desperfecto:desperfectoSeleccionado,
-detalle:parteTela || "",
-hora:fecha,
-estado:"pendiente",
-temporal:false
-};
-
-const {error}=await supabaseClient
-.from("solicitudes")
-.insert([solicitud]);
-
-if(error){
-console.log(error);
-alert("No se pudo enviar la solicitud");
-return;
-}
-
-document.getElementById("mensaje").innerText="Solicitud enviada correctamente";
-
-document.getElementById("empleado").value="";
-document.getElementById("bata").value="";
-document.getElementById("parteTela").value="";
-document.getElementById("extraTela").style.display="none";
-
-document.querySelectorAll(".opciones button").forEach(b=>{
-b.classList.remove("seleccionado");
-});
-
-}
-
-</script>
 
 </body>
 </html>

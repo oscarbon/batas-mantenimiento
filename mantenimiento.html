@@ -1,43 +1,19 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
 
 <meta charset="UTF-8">
 <title>Panel de Mantenimiento</title>
 
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<style>
+<script src="js/supabase.js"></script>
+<script src="js/mantenimiento.js" defer></script>
 
-body{
-font-family:Arial;
-background:#eef2f7;
-padding:20px;
-}
-
-.card{
-background:white;
-padding:15px;
-margin-bottom:10px;
-border-radius:12px;
-box-shadow:0 4px 12px rgba(0,0,0,0.1);
-}
-
-button{
-padding:8px 12px;
-margin-top:5px;
-border:none;
-border-radius:6px;
-cursor:pointer;
-font-weight:bold;
-margin-right:5px;
-}
-
-.btn-verde{background:#27ae60;color:white;}
-.btn-azul{background:#2d89ef;color:white;}
-.btn-naranja{background:#f39c12;color:white;}
-
-</style>
+<link rel="stylesheet" href="css/estilos.css">
 
 </head>
 
@@ -46,112 +22,6 @@ margin-right:5px;
 <h2>Panel de Mantenimiento</h2>
 
 <div id="contenedor"></div>
-
-<script>
-
-const SUPABASE_URL="https://uatbsgnqgpklugtwqbjh.supabase.co";
-
-const SUPABASE_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVhdGJzZ25xZ3BrbHVndHdxYmpoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMxNzUwNzgsImV4cCI6MjA4ODc1MTA3OH0.XIu4V2xSDswqwJX2rNNxYynhacTVCmv3iS1pOIFFn3Q";
-
-const supabaseClient=supabase.createClient(SUPABASE_URL,SUPABASE_KEY);
-
-async function cargar(){
-
-const {data}=await supabaseClient
-.from("solicitudes")
-.select("*")
-.order("hora",{ascending:false});
-
-let contenedor=document.getElementById("contenedor");
-
-contenedor.innerHTML="";
-
-data.forEach(s=>{
-
-let div=document.createElement("div");
-div.className="card";
-
-div.innerHTML=`
-
-<b>Empleado:</b> ${s.empleado}<br>
-<b>Bata:</b> ${s.bata}<br>
-<b>Desperfecto:</b> ${s.desperfecto}<br>
-<b>Detalle:</b> ${s.detalle || "-"}<br>
-<b>Hora:</b> ${new Date(s.hora).toLocaleString()}<br>
-<b>Estado:</b> ${s.estado}
-
-<br><br>
-
-${!s.temporal && s.estado==="pendiente"
-? `<button class="btn-azul" onclick="activarTemporal(${s.id})">Temporal</button>`
-: ""}
-
-${s.temporal && s.estado==="pendiente"
-? `<button class="btn-verde" onclick="arreglar(${s.id})">Arreglado</button>
-<button class="btn-naranja" onclick="cambiar(${s.id})">Cambio</button>`
-: ""}
-
-`;
-
-contenedor.appendChild(div);
-
-});
-
-}
-
-async function activarTemporal(id){
-
-await supabaseClient
-.from("solicitudes")
-.update({temporal:true})
-.eq("id",id);
-
-cargar();
-
-}
-
-async function arreglar(id){
-
-await supabaseClient
-.from("solicitudes")
-.update({
-estado:"completado",
-resultado:"arreglado"
-})
-.eq("id",id);
-
-cargar();
-
-}
-
-async function cambiar(id){
-
-await supabaseClient
-.from("solicitudes")
-.update({
-estado:"completado",
-resultado:"cambio"
-})
-.eq("id",id);
-
-cargar();
-
-}
-
-supabaseClient
-.channel("solicitudes")
-.on(
-"postgres_changes",
-{event:"INSERT",schema:"public",table:"solicitudes"},
-payload=>{
-cargar();
-}
-)
-.subscribe();
-
-cargar();
-
-</script>
 
 </body>
 </html>
