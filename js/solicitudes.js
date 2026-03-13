@@ -33,7 +33,7 @@ return data.length>0;
 
 /* ENVIAR SOLICITUD */
 
-async function enviar(){
+window.enviar = async function(){
 
 const empleado=document.getElementById("empleado").value;
 const bata=document.getElementById("bata").value;
@@ -42,19 +42,6 @@ const detalle=document.getElementById("parteTela").value;
 if(!empleado || !bata || !desperfectoSeleccionado){
 
 document.getElementById("mensaje").innerText="Completa todos los campos";
-return;
-
-}
-
-/* AQUI SE USA LA FUNCION */
-
-const existe=await existeSolicitudPendiente(bata);
-
-if(existe){
-
-document.getElementById("mensaje").innerText=
-"⚠ Esta bata ya tiene una solicitud pendiente";
-
 return;
 
 }
@@ -84,6 +71,7 @@ hora:new Date()
 
 if(error){
 
+console.error(error);
 document.getElementById("mensaje").innerText="Error al enviar";
 
 }else{
