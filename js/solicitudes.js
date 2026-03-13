@@ -1,83 +1,95 @@
-let desperfectoSeleccionado="";
+let desperfectoSeleccionado = "";
 
-function seleccionar(tipo,boton){
+function seleccionar(tipo,btn){
 
-desperfectoSeleccionado=tipo;
+desperfectoSeleccionado = tipo;
 
-document.querySelectorAll(".opciones button").forEach(b=>{
-b.classList.remove("seleccionado");
-});
+document.querySelectorAll(".opciones button")
+.forEach(b=>b.classList.remove("seleccionado"));
 
-boton.classList.add("seleccionado");
+btn.classList.add("seleccionado");
 
-document.getElementById("extraTela").style.display=
-(tipo==="Tela rasgada")?"block":"none";
+if(tipo==="Tela rasgada"){
+document.getElementById("extraTela").style.display="block";
+}else{
+document.getElementById("extraTela").style.display="none";
+}
 
 }
+
+/* VERIFICAR SI YA EXISTE SOLICITUD PENDIENTE */
+
+async function existeSolicitudPendiente(bata){
+
+const {data}=await supabaseClient
+.from("solicitudes")
+.select("id")
+.eq("bata",bata)
+.eq("estado","pendiente");
+
+return data.length>0;
+
+}
+
+/* ENVIAR SOLICITUD */
 
 async function enviar(){
 
-let empleado=document.getElementById("empleado").value.trim();
-let bata=document.getElementById("bata").value.trim();
-let parteTela=document.getElementById("parteTela").value.trim();
+const empleado=document.getElementById("empleado").value;
+const bata=document.getElementById("bata").value;
+const detalle=document.getElementById("parteTela").value;
 
-if(!empleado||!bata||!desperfectoSeleccionado){
-alert("Completa todos los campos");
-return;
-}
+if(!empleado || !bata || !desperfectoSeleccionado){
 
-if(desperfectoSeleccionado==="Tela rasgada" && !parteTela){
-alert("Especifica qué parte se rasgó");
-return;
-}
-
-let fecha=new Date().toISOString();
-
-let solicitud={
-empleado,
-bata,
-desperfecto:desperfectoSeleccionado,
-detalle:parteTela,
-hora:fecha,
-estado:"pendiente",
-temporal:false
-};
-
-/* EVITAR DUPLICADOS */
-
-const {data:existente}=await supabaseClient
-.from("solicitudes")
-.select("*")
-.eq("bata",bata)
-.eq("desperfecto",desperfectoSeleccionado)
-.eq("estado","pendiente");
-
-if(existente.length>0){
-
-alert("Ya existe una solicitud para esta bata con ese desperfecto");
+document.getElementById("mensaje").innerText="Completa todos los campos";
 return;
 
 }
 
-/* INSERTAR */
+/* AQUI SE USA LA FUNCION */
+
+const existe=await existeSolicitudPendiente(bata);
+
+if(existe){
+
+document.getElementById("mensaje").innerText=
+"⚠ Esta bata ya tiene una solicitud pendiente";
+
+return;
+
+}
+
+const existe=await existeSolicitudPendiente(bata);
+
+if(existe){
+
+document.getElementById("mensaje").innerText=
+"⚠ Esta bata ya tiene una solicitud pendiente";
+
+return;
+
+}
 
 const {error}=await supabaseClient
 .from("solicitudes")
-.insert([solicitud]);
+.insert({
+empleado,
+bata,
+desperfecto:desperfectoSeleccionado,
+detalle,
+estado:"pendiente",
+temporal:false,
+hora:new Date()
+});
 
 if(error){
 
-alert("Error al enviar solicitud");
-console.log(error);
-return;
+document.getElementById("mensaje").innerText="Error al enviar";
+
+}else{
+
+document.getElementById("mensaje").innerText="Solicitud enviada";
 
 }
-
-document.getElementById("mensaje").innerText="Solicitud enviada correctamente";
-
-document.getElementById("empleado").value="";
-document.getElementById("bata").value="";
-document.getElementById("parteTela").value="";
-document.getElementById("extraTela").style.display="none";
 
 }

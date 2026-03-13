@@ -1,4 +1,5 @@
 const contenedor=document.getElementById("contenedor");
+const contador=document.getElementById("contador");
 
 async function cargarSolicitudes(){
 
@@ -8,7 +9,11 @@ const {data,error}=await supabaseClient
 .eq("estado","pendiente")
 .order("hora",{ascending:true});
 
+if(error)return;
+
 contenedor.innerHTML="";
+
+contador.innerText="Solicitudes activas: "+data.length;
 
 data.forEach(s=>{
 
@@ -27,12 +32,25 @@ card.innerHTML=`
 <p><b>Hora:</b> ${new Date(s.hora).toLocaleString()}</p>
 
 ${s.temporal?
+
 `
-<button onclick="completar('${s.id}','arreglo')">Arreglo</button>
-<button onclick="completar('${s.id}','cambio')">Cambio</button>
+<button onclick="completar('${s.id}','arreglo')">
+Arreglo
+</button>
+
+<button onclick="completar('${s.id}','cambio')">
+Cambio
+</button>
 `
+
 :
-`<button onclick="activarTemporal('${s.id}')">Temporal</button>`
+
+`
+<button onclick="activarTemporal('${s.id}')">
+Temporal
+</button>
+`
+
 }
 
 `;
@@ -43,8 +61,6 @@ contenedor.appendChild(card);
 
 }
 
-/* TEMPORAL */
-
 async function activarTemporal(id){
 
 await supabaseClient
@@ -52,9 +68,9 @@ await supabaseClient
 .update({temporal:true})
 .eq("id",id);
 
-}
+cargarSolicitudes();
 
-/* COMPLETAR */
+}
 
 async function completar(id,tipo){
 
@@ -66,19 +82,25 @@ tipo:tipo
 })
 .eq("id",id);
 
+cargarSolicitudes();
+
 }
 
 /* CARGA INICIAL */
 
 cargarSolicitudes();
 
-/* ACTUALIZACION AUTOMATICA */
+/* REALTIME */
 
 supabaseClient
-.channel("solicitudes")
+.channel("realtime")
 .on(
 "postgres_changes",
-{event:"*",schema:"public",table:"solicitudes"},
+{
+event:"*",
+schema:"public",
+table:"solicitudes"
+},
 payload=>{
 cargarSolicitudes();
 }
