@@ -100,16 +100,46 @@ cargarSolicitudes();
 /* REALTIME */
 
 supabaseClient
-.channel("realtime")
+.channel("realtime-solicitudes")
 .on(
 "postgres_changes",
 {
-event:"*",
-schema:"public",
-table:"solicitudes"
+event: "INSERT",
+schema: "public",
+table: "solicitudes"
 },
-payload=>{
-cargarSolicitudes();
+payload => {
+
+const s = payload.new;
+
+if(s.estado !== "pendiente") return;
+
+/* crear tarjeta nueva */
+
+let card = document.createElement("div");
+card.className = "card";
+card.id = "sol_" + s.id;
+
+card.innerHTML = `
+
+<p><b>Empleado:</b> ${s.empleado}</p>
+<p><b>Bata:</b> ${s.bata}</p>
+<p><b>Desperfecto:</b> ${s.desperfecto}</p>
+<p><b>Hora:</b> ${new Date(s.hora).toLocaleString()}</p>
+
+<button onclick="activarTemporal('${s.id}')">
+Temporal
+</button>
+
+`;
+
+contenedor.prepend(card);
+
+/* actualizar contador */
+
+let total = contenedor.children.length;
+contador.innerText = "Solicitudes activas: " + total;
+
 }
 )
 .subscribe();
