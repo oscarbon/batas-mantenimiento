@@ -78,7 +78,7 @@ await supabaseClient
 .from("solicitudes")
 .update({
 estado:"completado",
-tipo:tipo
+resultado:tipo
 })
 .eq("id",id);
 
