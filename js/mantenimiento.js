@@ -9,7 +9,10 @@ const {data,error}=await supabaseClient
 .eq("estado","pendiente")
 .order("hora",{ascending:true});
 
-if(error)return;
+if(error){
+console.error(error);
+return;
+}
 
 contenedor.innerHTML="";
 
@@ -63,10 +66,12 @@ contenedor.appendChild(card);
 
 window.activarTemporal = async function(id){
 
-await supabaseClient
+const {error}=await supabaseClient
 .from("solicitudes")
 .update({temporal:true})
-.eq("id",id);
+.eq("id",Number(id));
+
+if(error) console.error(error);
 
 cargarSolicitudes();
 
@@ -74,13 +79,15 @@ cargarSolicitudes();
 
 window.completar = async function(id,tipo){
 
-await supabaseClient
+const {error}=await supabaseClient
 .from("solicitudes")
 .update({
 estado:"completado",
 resultado:tipo
 })
-.eq("id",id);
+.eq("id",Number(id));
+
+if(error) console.error(error);
 
 cargarSolicitudes();
 
