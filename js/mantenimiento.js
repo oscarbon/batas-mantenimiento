@@ -1,5 +1,5 @@
-const contenedor=document.getElementById("contenedor");
-const contador=document.getElementById("contador");
+const contenedor = document.getElementById("contenedor");
+const contador = document.getElementById("contador");
 
 async function cargarSolicitudes(){
 
@@ -61,7 +61,7 @@ contenedor.appendChild(card);
 
 }
 
-async function activarTemporal(id){
+window.activarTemporal = async function(id){
 
 await supabaseClient
 .from("solicitudes")
@@ -72,7 +72,7 @@ cargarSolicitudes();
 
 }
 
-async function completar(id,tipo){
+window.completar = async function(id,tipo){
 
 await supabaseClient
 .from("solicitudes")
