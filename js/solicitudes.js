@@ -66,7 +66,7 @@ desperfecto:desperfectoSeleccionado,
 detalle,
 estado:"pendiente",
 temporal:false,
-hora:new Date()
+hora:new Date().toISOString()
 });
 
 if(error){
