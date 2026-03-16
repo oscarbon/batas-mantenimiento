@@ -1,6 +1,8 @@
 const contenedor = document.getElementById("contenedor");
 const contador = document.getElementById("contador");
 
+/* INVENTARIO */
+
 let punos = Number(localStorage.getItem("punos")) || 0;
 let bordado = Number(localStorage.getItem("bordado")) || 0;
 
@@ -30,30 +32,38 @@ alertaBordadoMostrada = true;
 
 }
 
-function toggleSuministros(){
+/* MOSTRAR / OCULTAR SUMINISTROS */
+
+window.toggleSuministros = function(){
 
 let form = document.getElementById("suministrosForm");
 
-form.style.display = form.style.display === "none" ? "block" : "none";
+form.style.display =
+form.style.display === "none" ? "block" : "none";
 
 }
 
-function guardarSuministros(){
+/* GUARDAR INVENTARIO */
+
+window.guardarSuministros = function(){
 
 punos = Number(document.getElementById("inputPunos").value);
 bordado = Number(document.getElementById("inputBordado").value);
 
-localStorage.setItem("punos", punos);
-localStorage.setItem("bordado", bordado);
+localStorage.setItem("punos",punos);
+localStorage.setItem("bordado",bordado);
 
 alertaPunosMostrada = false;
 alertaBordadoMostrada = false;
 
-document.getElementById("suministrosForm").style.display = "none";
+document.getElementById("suministrosForm").style.display="none";
 
 actualizarInventarioUI();
 
 }
+
+/* CARGAR SOLICITUDES */
+
 async function cargarSolicitudes(){
 
 const {data,error}=await supabaseClient
@@ -85,10 +95,11 @@ card.innerHTML=`
 
 <p><b>Desperfecto:</b> ${s.desperfecto}</p>
 
-${s.desperfecto === "Tela rasgada" && s.detalle ? 
-`<p><b>Detalle:</b> ${s.detalle}</p>` : ""}
+${s.desperfecto==="Tela rasgada" && s.detalle ?
+`<p><b>Detalle:</b> ${s.detalle}</p>`:""}
 
 <p><b>Hora:</b> ${new Date(s.hora).toLocaleString()}</p>
+
 ${s.temporal?
 
 `
@@ -108,7 +119,6 @@ Cambio
 Temporal
 </button>
 `
-
 }
 
 `;
@@ -118,6 +128,8 @@ contenedor.appendChild(card);
 });
 
 }
+
+/* ACTIVAR TEMPORAL */
 
 window.activarTemporal = async function(id){
 
@@ -132,6 +144,8 @@ cargarSolicitudes();
 
 }
 
+/* COMPLETAR SOLICITUD */
+
 window.completar = async function(id,tipo){
 
 const {data} = await supabaseClient
@@ -140,18 +154,22 @@ const {data} = await supabaseClient
 .eq("id",Number(id))
 .single();
 
-if(data.desperfecto === "Puño roto"){
-punos = Math.max(0, punos - 1);
+/* DESCONTAR INVENTARIO */
+
+if(data.desperfecto==="Puño roto"){
+punos = Math.max(0,punos-1);
 }
 
-if(data.desperfecto === "Tela rasgada"){
-bordado = Math.max(0, bordado - 1);
+if(data.desperfecto==="Tela rasgada"){
+bordado = Math.max(0,bordado-1);
 }
 
 localStorage.setItem("punos",punos);
 localStorage.setItem("bordado",bordado);
 
 actualizarInventarioUI();
+
+/* ACTUALIZAR SOLICITUD */
 
 const {error}=await supabaseClient
 .from("solicitudes")
@@ -170,6 +188,7 @@ cargarSolicitudes();
 /* CARGA INICIAL */
 
 cargarSolicitudes();
+actualizarInventarioUI();
 
 /* REALTIME */
 
@@ -178,58 +197,46 @@ supabaseClient
 .on(
 "postgres_changes",
 {
-event: "INSERT",
-schema: "public",
-table: "solicitudes"
+event:"INSERT",
+schema:"public",
+table:"solicitudes"
 },
-payload => {
+payload=>{
 
-const s = payload.new;
+const s=payload.new;
 
-if(s.estado !== "pendiente") return;
+if(s.estado!=="pendiente") return;
 
-if(document.getElementById("sol_" + s.id)) return;
+if(document.getElementById("sol_"+s.id)) return;
 
-/* crear tarjeta nueva */
+let card=document.createElement("div");
+card.className="card";
+card.id="sol_"+s.id;
 
-let card = document.createElement("div");
-card.className = "card";
-card.id = "sol_" + s.id;
-
-card.innerHTML = `
+card.innerHTML=`
 
 <p><b>Empleado:</b> ${s.empleado}</p>
+
 <p><b>Bata:</b> ${s.bata}</p>
+
 <p><b>Desperfecto:</b> ${s.desperfecto}</p>
 
-${s.desperfecto === "Tela rasgada" && s.detalle ? 
-`<p><b>Detalle:</b> ${s.detalle}</p>` : ""}
+${s.desperfecto==="Tela rasgada" && s.detalle ?
+`<p><b>Detalle:</b> ${s.detalle}</p>`:""}
 
 <p><b>Hora:</b> ${new Date(s.hora).toLocaleString()}</p>
 
-${s.temporal?
+<button onclick="activarTemporal('${s.id}')">
+Temporal
+</button>
 
-`
-<button onclick="completar('${s.id}','arreglo')">Arreglo</button>
-<button onclick="completar('${s.id}','cambio')">Cambio</button>
-`
-
-:
-
-`
-<button onclick="activarTemporal('${s.id}')">Temporal</button>
-`
-}
 `;
 
 contenedor.prepend(card);
 
-/* actualizar contador */
-
-let total = contenedor.children.length;
-contador.innerText = "Solicitudes activas: " + total;
+let total=contenedor.children.length;
+contador.innerText="Solicitudes activas: "+total;
 
 }
 )
-actualizarInventarioUI();
 .subscribe();
