@@ -32,8 +32,10 @@ card.innerHTML=`
 
 <p><b>Desperfecto:</b> ${s.desperfecto}</p>
 
-<p><b>Hora:</b> ${new Date(s.hora).toLocaleString()}</p>
+${s.desperfecto === "Tela rasgada" && s.detalle ? 
+`<p><b>Detalle:</b> ${s.detalle}</p>` : ""}
 
+<p><b>Hora:</b> ${new Date(s.hora).toLocaleString()}</p>
 ${s.temporal?
 
 `
@@ -114,6 +116,8 @@ const s = payload.new;
 
 if(s.estado !== "pendiente") return;
 
+if(document.getElementById("sol_" + s.id)) return;
+
 /* crear tarjeta nueva */
 
 let card = document.createElement("div");
@@ -125,12 +129,25 @@ card.innerHTML = `
 <p><b>Empleado:</b> ${s.empleado}</p>
 <p><b>Bata:</b> ${s.bata}</p>
 <p><b>Desperfecto:</b> ${s.desperfecto}</p>
+
+${s.desperfecto === "Tela rasgada" && s.detalle ? 
+`<p><b>Detalle:</b> ${s.detalle}</p>` : ""}
+
 <p><b>Hora:</b> ${new Date(s.hora).toLocaleString()}</p>
 
-<button onclick="activarTemporal('${s.id}')">
-Temporal
-</button>
+${s.temporal?
 
+`
+<button onclick="completar('${s.id}','arreglo')">Arreglo</button>
+<button onclick="completar('${s.id}','cambio')">Cambio</button>
+`
+
+:
+
+`
+<button onclick="activarTemporal('${s.id}')">Temporal</button>
+`
+}
 `;
 
 contenedor.prepend(card);
