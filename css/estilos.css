@@ -42,3 +42,82 @@ background:#c0392b;
 background:#2e86de;
 color:white;
 }
+/* PANEL INVENTARIO */
+
+#inventarioPanel{
+margin-bottom:30px;
+}
+
+/* BOTON */
+
+.btnSuministros{
+padding:8px 15px;
+border-radius:8px;
+border:none;
+background:#2c3e50;
+color:white;
+cursor:pointer;
+font-weight:bold;
+}
+
+/* CONTENEDOR INVENTARIO */
+
+.inventarioHeader{
+display:flex;
+align-items:center;
+gap:20px;
+margin-top:10px;
+}
+
+/* CAJAS INVENTARIO */
+
+.inventarioBoxes{
+display:flex;
+gap:15px;
+}
+
+/* TARJETAS INVENTARIO */
+
+.inventarioCard{
+background:white;
+padding:10px 20px;
+border-radius:10px;
+box-shadow:0 3px 8px rgba(0,0,0,0.1);
+text-align:center;
+min-width:90px;
+}
+
+.inventarioCard p{
+margin:0;
+font-size:14px;
+color:#555;
+}
+
+.inventarioCard span{
+font-size:22px;
+font-weight:bold;
+}
+
+/* FORMULARIO */
+
+.suministrosForm{
+display:none;
+margin-top:15px;
+gap:10px;
+}
+
+.suministrosForm input{
+padding:8px;
+border-radius:6px;
+border:1px solid #ccc;
+margin-right:10px;
+}
+
+.suministrosForm button{
+padding:8px 15px;
+border:none;
+border-radius:6px;
+background:#27ae60;
+color:white;
+cursor:pointer;
+}

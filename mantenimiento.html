@@ -28,21 +28,35 @@
 
 <div id="inventarioPanel">
 
-<button onclick="toggleSuministros()">Suministros</button>
+<div class="inventarioHeader">
 
-<div id="suministrosForm" style="display:none; margin-top:10px;">
+<button class="btnSuministros" onclick="toggleSuministros()">
+Suministros
+</button>
+
+<div class="inventarioBoxes">
+
+<div class="inventarioCard">
+<p>Puños</p>
+<span id="contadorPunos">0</span>
+</div>
+
+<div class="inventarioCard">
+<p>Bordado</p>
+<span id="contadorBordado">0</span>
+</div>
+
+</div>
+
+</div>
+
+<div id="suministrosForm" class="suministrosForm">
 
 <input id="inputPunos" type="number" placeholder="Cantidad de puños">
-
 <input id="inputBordado" type="number" placeholder="Cantidad de bordados">
 
 <button onclick="guardarSuministros()">Guardar</button>
 
-</div>
-
-<div style="margin-top:10px;">
-Puños: <span id="contadorPunos">0</span> |
-Bordado: <span id="contadorBordado">0</span>
 </div>
 
 </div>
