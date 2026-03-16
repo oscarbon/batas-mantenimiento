@@ -76,7 +76,13 @@ document.getElementById("mensaje").innerText="Error al enviar";
 
 }else{
 
-document.getElementById("mensaje").innerText="Solicitud enviada";
+document.getElementById("mensaje").innerText="Solicitud enviada ✔";
+
+/* borrar mensaje después de 3 segundos */
+
+setTimeout(()=>{
+document.getElementById("mensaje").innerText="";
+},3000);
 
 /* RESET FORMULARIO */
 
