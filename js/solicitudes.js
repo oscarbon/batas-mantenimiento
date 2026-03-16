@@ -78,6 +78,22 @@ document.getElementById("mensaje").innerText="Error al enviar";
 
 document.getElementById("mensaje").innerText="Solicitud enviada";
 
-}
+/* RESET FORMULARIO */
 
+document.getElementById("empleado").value="";
+document.getElementById("bata").value="";
+document.getElementById("parteTela").value="";
+
+desperfectoSeleccionado="";
+
+/* ocultar campo de tela */
+
+document.getElementById("extraTela").style.display="none";
+
+/* quitar selección de botones */
+
+document.querySelectorAll(".opciones button")
+.forEach(b=>b.classList.remove("seleccionado"));
+
+}
 }
