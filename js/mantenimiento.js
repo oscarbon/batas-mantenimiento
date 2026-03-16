@@ -1,6 +1,59 @@
 const contenedor = document.getElementById("contenedor");
 const contador = document.getElementById("contador");
 
+let punos = Number(localStorage.getItem("punos")) || 0;
+let bordado = Number(localStorage.getItem("bordado")) || 0;
+
+let alertaPunosMostrada = false;
+let alertaBordadoMostrada = false;
+
+function actualizarInventarioUI(){
+
+document.getElementById("contadorPunos").innerText = punos;
+document.getElementById("contadorBordado").innerText = bordado;
+
+let punosBox = document.getElementById("contadorPunos");
+let bordadoBox = document.getElementById("contadorBordado");
+
+punosBox.style.color = punos <= 50 ? "red" : "black";
+bordadoBox.style.color = bordado <= 50 ? "red" : "black";
+
+if(punos <= 50 && !alertaPunosMostrada){
+alert("⚠ Inventario de puños bajo");
+alertaPunosMostrada = true;
+}
+
+if(bordado <= 50 && !alertaBordadoMostrada){
+alert("⚠ Inventario de bordado bajo");
+alertaBordadoMostrada = true;
+}
+
+}
+
+function toggleSuministros(){
+
+let form = document.getElementById("suministrosForm");
+
+form.style.display = form.style.display === "none" ? "block" : "none";
+
+}
+
+function guardarSuministros(){
+
+punos = Number(document.getElementById("inputPunos").value);
+bordado = Number(document.getElementById("inputBordado").value);
+
+localStorage.setItem("punos", punos);
+localStorage.setItem("bordado", bordado);
+
+alertaPunosMostrada = false;
+alertaBordadoMostrada = false;
+
+document.getElementById("suministrosForm").style.display = "none";
+
+actualizarInventarioUI();
+
+}
 async function cargarSolicitudes(){
 
 const {data,error}=await supabaseClient
@@ -81,6 +134,25 @@ cargarSolicitudes();
 
 window.completar = async function(id,tipo){
 
+const {data} = await supabaseClient
+.from("solicitudes")
+.select("*")
+.eq("id",Number(id))
+.single();
+
+if(data.desperfecto === "Puño roto"){
+punos--;
+}
+
+if(data.desperfecto === "Tela rasgada"){
+bordado--;
+}
+
+localStorage.setItem("punos",punos);
+localStorage.setItem("bordado",bordado);
+
+actualizarInventarioUI();
+
 const {error}=await supabaseClient
 .from("solicitudes")
 .update({
@@ -159,4 +231,5 @@ contador.innerText = "Solicitudes activas: " + total;
 
 }
 )
+actualizarInventarioUI();
 .subscribe();
