@@ -141,11 +141,11 @@ const {data} = await supabaseClient
 .single();
 
 if(data.desperfecto === "Puño roto"){
-punos--;
+punos = Math.max(0, punos - 1);
 }
 
 if(data.desperfecto === "Tela rasgada"){
-bordado--;
+bordado = Math.max(0, bordado - 1);
 }
 
 localStorage.setItem("punos",punos);
