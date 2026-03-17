@@ -54,18 +54,26 @@ async function login(){
 
 const email = document.getElementById("correo").value;
 
-const {error} = await supabaseClient.auth.signInWithOtp({
-email: email,
-options: {
-emailRedirectTo: window.location.origin + "/mantenimiento.html"
-}
-});
+/* VALIDAR EN SUPABASE */
 
-if(error){
-document.getElementById("msg").innerText="Error";
-}else{
-document.getElementById("msg").innerText="Revisa tu correo";
+const {data,error} = await supabaseClient
+.from("usuarios_permitidos")
+.select("*")
+.eq("correo",email)
+.single();
+
+if(error || !data){
+document.getElementById("msg").innerText="❌ No autorizado";
+return;
 }
+
+/* GUARDAR SESIÓN LOCAL */
+
+localStorage.setItem("usuario", email);
+
+/* ENTRAR */
+
+window.location.href="mantenimiento.html";
 
 }
 

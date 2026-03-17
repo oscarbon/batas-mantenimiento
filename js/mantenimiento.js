@@ -9,19 +9,37 @@ let punos = 0;
 let bordado = 0;
 
 /* =========================
-   LOGIN / SEGURIDAD
+   LOGIN DIRECTO
 ========================= */
 
 async function verificarUsuario(){
 
-const {data:{user}} = await supabaseClient.auth.getUser();
+const user = localStorage.getItem("usuario");
 
 if(!user){
 window.location.href = "login.html";
 return;
 }
 
-registrarEntrada(user.email);
+/* VALIDAR EN SUPABASE */
+
+const {data,error} = await supabaseClient
+.from("usuarios_permitidos")
+.select("*")
+.eq("correo",user)
+.single();
+
+if(error || !data){
+
+localStorage.removeItem("usuario");
+window.location.href="login.html";
+return;
+
+}
+
+/* REGISTRAR ENTRADA */
+
+registrarEntrada(user);
 
 }
 
@@ -48,19 +66,19 @@ correo:correo
 }
 
 /* =========================
-   REGISTRAR SALIDA (MEJORADO)
+   REGISTRAR SALIDA
 ========================= */
 
 async function registrarSalida(){
 
-const {data:{user}} = await supabaseClient.auth.getUser();
+const user = localStorage.getItem("usuario");
 
 if(user){
 
 await supabaseClient
 .from("usuarios_log")
 .update({salida:new Date()})
-.eq("correo",user.email)
+.eq("correo",user)
 .is("salida",null);
 
 }
@@ -76,6 +94,20 @@ if(document.visibilityState === "hidden"){
 registrarSalida();
 }
 });
+
+/* =========================
+   LOGOUT
+========================= */
+
+window.logout = function(){
+
+registrarSalida();
+
+localStorage.removeItem("usuario");
+
+window.location.href="login.html";
+
+}
 
 /* =========================
    UI INVENTARIO
