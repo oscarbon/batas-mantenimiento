@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+<meta charset="UTF-8">
+<title>Login</title>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+
+<style>
+body{
+font-family:Arial;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+background:#f4f6f9;
+}
+
+.card{
+background:white;
+padding:30px;
+border-radius:10px;
+box-shadow:0 4px 10px rgba(0,0,0,0.1);
+}
+
+input,button{
+padding:10px;
+margin-top:10px;
+width:100%;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="card">
+
+<h2>Acceso Mantenimiento</h2>
+
+<input id="correo" type="email" placeholder="Correo">
+
+<button onclick="login()">Entrar</button>
+
+<p id="msg"></p>
+
+</div>
+
+<script>
+
+async function login(){
+
+const email = document.getElementById("correo").value;
+
+const {error} = await supabaseClient.auth.signInWithOtp({
+email: email,
+options: {
+emailRedirectTo: window.location.origin + "/mantenimiento.html"
+}
+});
+
+if(error){
+document.getElementById("msg").innerText="Error";
+}else{
+document.getElementById("msg").innerText="Revisa tu correo";
+}
+
+}
+
+</script>
+
+</body>
+</html>

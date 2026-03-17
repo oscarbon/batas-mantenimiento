@@ -1,12 +1,85 @@
 const contenedor = document.getElementById("contenedor");
 const contador = document.getElementById("contador");
 
-/* INVENTARIO GLOBAL */
+/* =========================
+   INVENTARIO GLOBAL
+========================= */
 
 let punos = 0;
 let bordado = 0;
 
-/* UI INVENTARIO */
+/* =========================
+   LOGIN / SEGURIDAD
+========================= */
+
+async function verificarUsuario(){
+
+const {data:{user}} = await supabaseClient.auth.getUser();
+
+if(!user){
+window.location.href = "login.html";
+return;
+}
+
+registrarEntrada(user.email);
+
+}
+
+/* =========================
+   REGISTRAR ENTRADA (SIN DUPLICADOS)
+========================= */
+
+async function registrarEntrada(correo){
+
+const {data} = await supabaseClient
+.from("usuarios_log")
+.select("*")
+.eq("correo",correo)
+.is("salida",null);
+
+if(data.length > 0) return;
+
+await supabaseClient
+.from("usuarios_log")
+.insert({
+correo:correo
+});
+
+}
+
+/* =========================
+   REGISTRAR SALIDA (MEJORADO)
+========================= */
+
+async function registrarSalida(){
+
+const {data:{user}} = await supabaseClient.auth.getUser();
+
+if(user){
+
+await supabaseClient
+.from("usuarios_log")
+.update({salida:new Date()})
+.eq("correo",user.email)
+.is("salida",null);
+
+}
+
+}
+
+/* cerrar pestaña */
+window.addEventListener("beforeunload", registrarSalida);
+
+/* cambiar de ventana */
+window.addEventListener("visibilitychange", ()=>{
+if(document.visibilityState === "hidden"){
+registrarSalida();
+}
+});
+
+/* =========================
+   UI INVENTARIO
+========================= */
 
 function actualizarInventarioUI(){
 
@@ -21,7 +94,9 @@ bordadoBox.style.color = bordado <= 50 ? "red" : "black";
 
 }
 
-/* CARGAR INVENTARIO */
+/* =========================
+   CARGAR INVENTARIO
+========================= */
 
 async function cargarInventario(){
 
@@ -43,7 +118,9 @@ actualizarInventarioUI();
 
 }
 
-/* BOTONES */
+/* =========================
+   BOTONES INVENTARIO
+========================= */
 
 window.toggleSuministros = function(){
 
@@ -69,11 +146,16 @@ alerta_bordado:false
 })
 .eq("id",1);
 
+actualizarInventarioUI();
+cargarInventario();
+
 document.getElementById("suministrosForm").style.display="none";
 
 }
 
-/* SOLICITUDES */
+/* =========================
+   SOLICITUDES
+========================= */
 
 async function cargarSolicitudes(){
 
@@ -130,7 +212,9 @@ contenedor.appendChild(card);
 
 }
 
-/* TEMPORAL */
+/* =========================
+   TEMPORAL
+========================= */
 
 window.activarTemporal = async function(id){
 
@@ -143,7 +227,9 @@ cargarSolicitudes();
 
 }
 
-/* COMPLETAR (SEGURO) */
+/* =========================
+   COMPLETAR (SEGURO)
+========================= */
 
 window.completar = async function(id,tipo){
 
@@ -196,12 +282,17 @@ cargarSolicitudes();
 
 }
 
-/* INICIO */
+/* =========================
+   INICIO
+========================= */
 
+verificarUsuario();
 cargarSolicitudes();
 cargarInventario();
 
-/* REALTIME INVENTARIO */
+/* =========================
+   REALTIME INVENTARIO
+========================= */
 
 supabaseClient
 .channel("inventario-changes")
@@ -221,8 +312,6 @@ bordado = data.bordado;
 
 actualizarInventarioUI();
 
-/* ALERTA GLOBAL */
-
 if(data.alerta_punos){
 alert("⚠ Inventario de puños bajo");
 }
@@ -231,6 +320,25 @@ if(data.alerta_bordado){
 alert("⚠ Inventario de bordado bajo");
 }
 
+}
+)
+.subscribe();
+
+/* =========================
+   REALTIME SOLICITUDES
+========================= */
+
+supabaseClient
+.channel("solicitudes-changes")
+.on(
+"postgres_changes",
+{
+event:"INSERT",
+schema:"public",
+table:"solicitudes"
+},
+payload=>{
+cargarSolicitudes();
 }
 )
 .subscribe();
