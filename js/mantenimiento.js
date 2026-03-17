@@ -3,8 +3,28 @@ const contador = document.getElementById("contador");
 
 /* INVENTARIO */
 
-let punos = Number(localStorage.getItem("punos")) || 0;
-let bordado = Number(localStorage.getItem("bordado")) || 0;
+let punos = 0;
+let bordado = 0;
+
+async function cargarInventario(){
+
+const {data,error}=await supabaseClient
+.from("inventario")
+.select("*")
+.eq("id",1)
+.single();
+
+if(error){
+console.error(error);
+return;
+}
+
+punos = data.punos;
+bordado = data.bordado;
+
+actualizarInventarioUI();
+
+}
 
 let alertaPunosMostrada = false;
 let alertaBordadoMostrada = false;
@@ -45,13 +65,25 @@ form.style.display === "none" ? "block" : "none";
 
 /* GUARDAR INVENTARIO */
 
-window.guardarSuministros = function(){
+window.guardarSuministros = async function(){
 
 punos = Number(document.getElementById("inputPunos").value);
 bordado = Number(document.getElementById("inputBordado").value);
 
-localStorage.setItem("punos",punos);
-localStorage.setItem("bordado",bordado);
+const {error}=await supabaseClient
+.from("inventario")
+.update({
+punos,
+bordado,
+alerta_punos:false,
+alerta_bordado:false
+})
+.eq("id",1);
+
+if(error){
+console.error(error);
+return;
+}
 
 alertaPunosMostrada = false;
 alertaBordadoMostrada = false;
@@ -61,7 +93,6 @@ document.getElementById("suministrosForm").style.display="none";
 actualizarInventarioUI();
 
 }
-
 /* CARGAR SOLICITUDES */
 
 async function cargarSolicitudes(){
@@ -154,6 +185,7 @@ const {data} = await supabaseClient
 .eq("id",Number(id))
 .single();
 
+
 /* DESCONTAR INVENTARIO */
 
 if(data.desperfecto==="Puño roto"){
@@ -164,8 +196,29 @@ if(data.desperfecto==="Tela rasgada"){
 bordado = Math.max(0,bordado-1);
 }
 
-localStorage.setItem("punos",punos);
-localStorage.setItem("bordado",bordado);
+await supabaseClient
+.from("inventario")
+.update({
+punos,
+bordado
+})
+.eq("id",1);
+
+/* ALERTA GLOBAL */
+
+if(punos <= 50){
+await supabaseClient
+.from("inventario")
+.update({alerta_punos:true})
+.eq("id",1);
+}
+
+if(bordado <= 50){
+await supabaseClient
+.from("inventario")
+.update({alerta_bordado:true})
+.eq("id",1);
+}
 
 actualizarInventarioUI();
 
@@ -188,7 +241,7 @@ cargarSolicitudes();
 /* CARGA INICIAL */
 
 cargarSolicitudes();
-actualizarInventarioUI();
+cargarInventario();
 
 /* REALTIME */
 
@@ -236,6 +289,39 @@ contenedor.prepend(card);
 
 let total=contenedor.children.length;
 contador.innerText="Solicitudes activas: "+total;
+
+}
+)
+.subscribe();
+
+
+supabaseClient
+.channel("inventario-changes")
+.on(
+"postgres_changes",
+{
+event:"UPDATE",
+schema:"public",
+table:"inventario"
+},
+payload=>{
+
+const data = payload.new;
+
+punos = data.punos;
+bordado = data.bordado;
+
+actualizarInventarioUI();
+
+/* ALERTAS GLOBALES */
+
+if(data.alerta_punos){
+alert("⚠ Inventario de puños bajo");
+}
+
+if(data.alerta_bordado){
+alert("⚠ Inventario de bordado bajo");
+}
 
 }
 )
