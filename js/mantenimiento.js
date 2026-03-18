@@ -9,7 +9,7 @@ let punos = 0;
 let bordado = 0;
 
 /* =========================
-   LOGIN DIRECTO
+   LOGIN
 ========================= */
 
 async function verificarUsuario(){
@@ -21,8 +21,6 @@ window.location.href = "login.html";
 return;
 }
 
-/* VALIDAR EN SUPABASE */
-
 const {data,error} = await supabaseClient
 .from("usuarios_permitidos")
 .select("*")
@@ -30,21 +28,17 @@ const {data,error} = await supabaseClient
 .single();
 
 if(error || !data){
-
 localStorage.removeItem("usuario");
 window.location.href="login.html";
 return;
-
 }
-
-/* REGISTRAR ENTRADA */
 
 registrarEntrada(user);
 
 }
 
 /* =========================
-   REGISTRAR ENTRADA (SIN DUPLICADOS)
+   LOG ENTRADA/SALIDA
 ========================= */
 
 async function registrarEntrada(correo){
@@ -59,41 +53,25 @@ if(data.length > 0) return;
 
 await supabaseClient
 .from("usuarios_log")
-.insert({
-correo:correo
-});
+.insert({correo});
 
 }
-
-/* =========================
-   REGISTRAR SALIDA
-========================= */
 
 async function registrarSalida(){
 
 const user = localStorage.getItem("usuario");
 
 if(user){
-
 await supabaseClient
 .from("usuarios_log")
 .update({salida:new Date()})
 .eq("correo",user)
 .is("salida",null);
-
 }
 
 }
 
-/* cerrar pestaña */
 window.addEventListener("beforeunload", registrarSalida);
-
-/* cambiar de ventana */
-window.addEventListener("visibilitychange", ()=>{
-if(document.visibilityState === "hidden"){
-registrarSalida();
-}
-});
 
 /* =========================
    LOGOUT
@@ -110,7 +88,7 @@ window.location.href="login.html";
 }
 
 /* =========================
-   UI INVENTARIO
+   INVENTARIO UI
 ========================= */
 
 function actualizarInventarioUI(){
@@ -118,11 +96,11 @@ function actualizarInventarioUI(){
 document.getElementById("contadorPunos").innerText = punos;
 document.getElementById("contadorBordado").innerText = bordado;
 
-let punosBox = document.getElementById("contadorPunos");
-let bordadoBox = document.getElementById("contadorBordado");
+document.getElementById("contadorPunos").style.color =
+punos <= 50 ? "red" : "black";
 
-punosBox.style.color = punos <= 50 ? "red" : "black";
-bordadoBox.style.color = bordado <= 50 ? "red" : "black";
+document.getElementById("contadorBordado").style.color =
+bordado <= 50 ? "red" : "black";
 
 }
 
@@ -151,7 +129,7 @@ actualizarInventarioUI();
 }
 
 /* =========================
-   BOTONES INVENTARIO
+   SUMINISTROS
 ========================= */
 
 window.toggleSuministros = function(){
@@ -177,9 +155,6 @@ alerta_punos:false,
 alerta_bordado:false
 })
 .eq("id",1);
-
-actualizarInventarioUI();
-cargarInventario();
 
 document.getElementById("suministrosForm").style.display="none";
 
@@ -260,7 +235,7 @@ cargarSolicitudes();
 }
 
 /* =========================
-   COMPLETAR (SEGURO)
+   COMPLETAR
 ========================= */
 
 window.completar = async function(id,tipo){
@@ -271,10 +246,7 @@ const {data} = await supabaseClient
 .eq("id",Number(id))
 .single();
 
-/* DESCUENTO SEGURO */
-
-await supabaseClient
-.rpc("descontar_inventario", {
+await supabaseClient.rpc("descontar_inventario", {
 tipo: data.desperfecto
 });
 
@@ -287,20 +259,12 @@ const {data:inv}=await supabaseClient
 .single();
 
 if(inv.punos <= 50){
-await supabaseClient
-.from("inventario")
-.update({alerta_punos:true})
-.eq("id",1);
+await supabaseClient.from("inventario").update({alerta_punos:true}).eq("id",1);
 }
 
 if(inv.bordado <= 50){
-await supabaseClient
-.from("inventario")
-.update({alerta_bordado:true})
-.eq("id",1);
+await supabaseClient.from("inventario").update({alerta_bordado:true}).eq("id",1);
 }
-
-/* ACTUALIZAR SOLICITUD */
 
 await supabaseClient
 .from("solicitudes")
@@ -315,62 +279,126 @@ cargarSolicitudes();
 }
 
 /* =========================
+   🔒 BLOQUEO EXCEL GLOBAL
+========================= */
+
+async function verificarDescargaGlobal(){
+
+const ahora = new Date();
+if(ahora.getHours() < 5) return;
+
+const usuario = localStorage.getItem("usuario");
+
+let ayer = new Date();
+ayer.setDate(ayer.getDate() - 1);
+
+const fechaAyer = ayer.toISOString().split("T")[0];
+
+const {data} = await supabaseClient
+.from("reportes_descargados")
+.select("*")
+.eq("fecha",fechaAyer)
+.eq("usuario",usuario);
+
+if(!data || data.length === 0){
+
+document.getElementById("bloqueoExcel").style.display="flex";
+
+}
+
+}
+
+/* =========================
+   DESCARGAR EXCEL
+========================= */
+
+window.descargarExcel = async function(){
+
+const usuario = localStorage.getItem("usuario");
+
+let ayer = new Date();
+ayer.setDate(ayer.getDate() - 1);
+
+const inicio = new Date(ayer.setHours(0,0,0,0)).toISOString();
+const fin = new Date(ayer.setHours(23,59,59,999)).toISOString();
+
+const fechaAyer = inicio.split("T")[0];
+
+const {data,error} = await supabaseClient
+.from("solicitudes")
+.select("*")
+.gte("hora",inicio)
+.lte("hora",fin);
+
+if(error){
+alert("Error al generar Excel");
+return;
+}
+
+const ws = XLSX.utils.json_to_sheet(data);
+const wb = XLSX.utils.book_new();
+
+XLSX.utils.book_append_sheet(wb, ws, "Reporte");
+
+XLSX.writeFile(wb, "reporte_"+fechaAyer+".xlsx");
+
+/* REGISTRAR DESCARGA */
+
+await supabaseClient
+.from("reportes_descargados")
+.insert({
+fecha:fechaAyer,
+usuario:usuario
+});
+
+document.getElementById("bloqueoExcel").style.display="none";
+
+}
+
+/* =========================
    INICIO
 ========================= */
 
 verificarUsuario();
 cargarSolicitudes();
 cargarInventario();
+verificarDescargaGlobal();
 
 /* =========================
-   REALTIME INVENTARIO
+   REALTIME
 ========================= */
 
 supabaseClient
-.channel("inventario-changes")
-.on(
-"postgres_changes",
-{
-event:"UPDATE",
-schema:"public",
-table:"inventario"
-},
-payload=>{
-
-const data = payload.new;
-
-punos = data.punos;
-bordado = data.bordado;
-
-actualizarInventarioUI();
-
-if(data.alerta_punos){
-alert("⚠ Inventario de puños bajo");
-}
-
-if(data.alerta_bordado){
-alert("⚠ Inventario de bordado bajo");
-}
-
-}
-)
-.subscribe();
-
-/* =========================
-   REALTIME SOLICITUDES
-========================= */
-
-supabaseClient
-.channel("solicitudes-changes")
-.on(
-"postgres_changes",
-{
+.channel("solicitudes")
+.on("postgres_changes",{
 event:"INSERT",
 schema:"public",
 table:"solicitudes"
-},
-payload=>{
+},()=>{
 cargarSolicitudes();
+})
+.subscribe();
+
+supabaseClient
+.channel("inventario")
+.on("postgres_changes",{
+event:"UPDATE",
+schema:"public",
+table:"inventario"
+},payload=>{
+
+punos = payload.new.punos;
+bordado = payload.new.bordado;
+
+actualizarInventarioUI();
+
+if(payload.new.alerta_punos){
+alert("⚠ Inventario de puños bajo");
 }
-)
+
+if(payload.new.alerta_bordado){
+alert("⚠ Inventario de bordado bajo");
+}
+
+})
 .subscribe();
