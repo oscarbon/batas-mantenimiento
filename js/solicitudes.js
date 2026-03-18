@@ -1,3 +1,21 @@
+window.desperfectoSeleccionado = "";
+
+window.seleccionar = function(tipo,btn){
+
+desperfectoSeleccionado = tipo;
+
+document.querySelectorAll(".opciones button")
+.forEach(b=>b.classList.remove("seleccionado"));
+
+btn.classList.add("seleccionado");
+
+if(tipo==="Tela rasgada"){
+document.getElementById("extraTela").style.display="block";
+}else{
+document.getElementById("extraTela").style.display="none";
+}
+
+}
 window.enviar = async function(){
 
 const empleado=document.getElementById("empleado").value;
