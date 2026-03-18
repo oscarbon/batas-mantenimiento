@@ -1,38 +1,3 @@
-let desperfectoSeleccionado = "";
-
-function seleccionar(tipo,btn){
-
-desperfectoSeleccionado = tipo;
-
-document.querySelectorAll(".opciones button")
-.forEach(b=>b.classList.remove("seleccionado"));
-
-btn.classList.add("seleccionado");
-
-if(tipo==="Tela rasgada"){
-document.getElementById("extraTela").style.display="block";
-}else{
-document.getElementById("extraTela").style.display="none";
-}
-
-}
-
-/* VERIFICAR SI YA EXISTE SOLICITUD PENDIENTE */
-
-async function existeSolicitudPendiente(bata){
-
-const {data}=await supabaseClient
-.from("solicitudes")
-.select("id")
-.eq("bata",bata)
-.eq("estado","pendiente");
-
-return data.length>0;
-
-}
-
-/* ENVIAR SOLICITUD */
-
 window.enviar = async function(){
 
 const empleado=document.getElementById("empleado").value;
@@ -57,7 +22,7 @@ return;
 
 }
 
-const {error}=await supabaseClient
+const {data,error}=await supabaseClient
 .from("solicitudes")
 .insert({
 empleado,
@@ -67,7 +32,9 @@ detalle,
 estado:"pendiente",
 temporal:false,
 hora:new Date().toISOString()
-});
+})
+.select()
+.single();
 
 if(error){
 
@@ -77,6 +44,27 @@ document.getElementById("mensaje").innerText="Error al enviar";
 }else{
 
 document.getElementById("mensaje").innerText="Solicitud enviada ✔";
+
+/* 🔔 AQUI LLAMAMOS EDGE FUNCTION */
+
+try{
+
+await fetch("https://uatbsgnqgpklugtwqbjh.functions.supabase.co/notificar", {
+method: "POST",
+headers: {
+"Content-Type": "application/json"
+},
+body: JSON.stringify({
+empleado: data.empleado,
+bata: data.bata,
+desperfecto: data.desperfecto,
+detalle: data.detalle
+})
+});
+
+}catch(e){
+console.error("Error enviando correo:", e);
+}
 
 /* borrar mensaje después de 3 segundos */
 
@@ -102,4 +90,5 @@ document.querySelectorAll(".opciones button")
 .forEach(b=>b.classList.remove("seleccionado"));
 
 }
+
 }
