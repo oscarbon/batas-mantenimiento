@@ -55,43 +55,11 @@ const btn = document.getElementById("btnExcelAdmin");
 
 if(btn && data && data.rol === "admin"){
 btn.style.display = "block";
-btn.onclick = descargarExcelManual;
+btn.onclick = descargarExcel;
 }
 
 }
 
-/* =========================
-   EXCEL MANUAL ADMIN
-========================= */
-
-window.descargarExcelManual = async function(){
-
-let hoy = new Date();
-
-const inicio = new Date(hoy.setHours(0,0,0,0)).toISOString();
-const fin = new Date(hoy.setHours(23,59,59,999)).toISOString();
-
-const fecha = inicio.split("T")[0];
-
-const {data,error} = await supabaseClient
-.from("solicitudes")
-.select("*")
-.gte("hora",inicio)
-.lte("hora",fin);
-
-if(error){
-alert("Error al generar Excel");
-return;
-}
-
-const ws = XLSX.utils.json_to_sheet(data);
-const wb = XLSX.utils.book_new();
-
-XLSX.utils.book_append_sheet(wb, ws, "Reporte");
-
-XLSX.writeFile(wb, "reporte_"+fecha+".xlsx");
-
-}
 
 /* =========================
    LOG
