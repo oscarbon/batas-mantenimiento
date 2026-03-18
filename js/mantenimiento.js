@@ -596,10 +596,22 @@ verificarDescargaGlobal();
 supabaseClient
 .channel("solicitudes")
 .on("postgres_changes",{
-event:"INSERT",
+event:"*",
 schema:"public",
 table:"solicitudes"
-},()=>cargarSolicitudes())
+},payload=>{
+
+/* SOLO SI AFECTA VISUAL */
+
+if(
+payload.eventType === "INSERT" ||
+payload.eventType === "UPDATE" ||
+payload.eventType === "DELETE"
+){
+cargarSolicitudes();
+}
+
+})
 .subscribe();
 
 supabaseClient
