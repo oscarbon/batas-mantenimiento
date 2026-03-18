@@ -116,14 +116,39 @@ function actualizarInventarioUI(){
 document.getElementById("contadorPunos").innerText = punos;
 document.getElementById("contadorBordado").innerText = bordado;
 
+/* COLORES */
+
 document.getElementById("contadorPunos").style.color =
 punos <= 50 ? "red" : "black";
 
 document.getElementById("contadorBordado").style.color =
 bordado <= 50 ? "red" : "black";
 
+/* =========================
+   ALERTAS (SOLO UNA VEZ)
+========================= */
+
+if(punos <= 50 && !window.alertaPunos){
+alert("⚠ Inventario bajo de PUÑOS");
+window.alertaPunos = true;
 }
 
+if(bordado <= 50 && !window.alertaBordado){
+alert("⚠ Inventario bajo de BORDADO");
+window.alertaBordado = true;
+}
+
+/* RESET SI SUBE INVENTARIO */
+
+if(punos > 50){
+window.alertaPunos = false;
+}
+
+if(bordado > 50){
+window.alertaBordado = false;
+}
+
+}
 /* =========================
    INVENTARIO DB
 ========================= */
