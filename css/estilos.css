@@ -291,3 +291,26 @@ color:#2c3e50;
 .btn-temporal:hover{
 background:#d4ac0d;
 }
+/* =========================
+   BOTON CERRAR SESION
+========================= */
+
+.btn-logout{
+background:#e74c3c;
+color:white;
+border:none;
+padding:10px 16px;
+border-radius:10px;
+font-weight:600;
+cursor:pointer;
+display:inline-flex;
+align-items:center;
+gap:8px;
+transition:all 0.2s ease;
+}
+
+.btn-logout:hover{
+background:#c0392b;
+transform:translateY(-1px);
+box-shadow:0 4px 8px rgba(0,0,0,0.15);
+}
