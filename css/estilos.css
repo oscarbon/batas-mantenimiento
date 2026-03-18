@@ -314,3 +314,15 @@ background:#c0392b;
 transform:translateY(-1px);
 box-shadow:0 4px 8px rgba(0,0,0,0.15);
 }
+/* =========================
+   BOTON EXCEL HOY
+========================= */
+
+.btn-hoy{
+background:#16a085;
+color:white;
+}
+
+.btn-hoy:hover{
+background:#117864;
+}
