@@ -2,50 +2,30 @@
 <html lang="es">
 
 <head>
-
 <meta charset="UTF-8">
 <title>Panel de Mantenimiento</title>
-
 <meta name="viewport" content="width=device-width, initial-scale=1">
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase.js"></script>
-
-<script src="js/mantenimiento.js?v=2" defer></script>
+<script src="js/mantenimiento.js?v=3" defer></script>
 
 <link rel="stylesheet" href="css/estilos.css">
-
 </head>
 
 <body>
 
-<!-- 🔒 BLOQUEO -->
-<div id="bloqueoExcel" style="
-display:none;
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:rgba(0,0,0,0.8);
-color:white;
-z-index:9999;
-justify-content:center;
-align-items:center;
-flex-direction:column;
-">
-
+<!-- BLOQUEO -->
+<div id="bloqueoExcel" class="overlay">
 <h2>⚠ Debes descargar el Excel del día anterior</h2>
-<button onclick="descargarExcel()">Descargar Excel</button>
-
+<button class="btn success" onclick="descargarExcel()">Descargar Excel</button>
 </div>
 
-<!-- 🔐 HEADER -->
-<button onclick="logout()">Cerrar sesión</button>
+<!-- HEADER -->
+<button class="btn logout" onclick="logout()">Cerrar sesión</button>
 
-<button id="btnExcelAdmin" style="display:none;">
+<button id="btnExcelAdmin" class="btn warning" style="display:none;">
 📥 Descargar Excel (Admin)
 </button>
 
@@ -56,7 +36,7 @@ flex-direction:column;
 
 <div class="inventarioHeader">
 
-<button class="btnSuministros" onclick="toggleSuministros()">
+<button class="btn dark" onclick="toggleSuministros()">
 Suministros
 </button>
 
@@ -81,14 +61,13 @@ Suministros
 <input id="inputPunos" type="number" placeholder="Cantidad de puños">
 <input id="inputBordado" type="number" placeholder="Cantidad de bordados">
 
-<button onclick="guardarSuministros()">Guardar</button>
+<button class="btn success" onclick="guardarSuministros()">Guardar</button>
 
 </div>
 
 </div>
 
 <h3 id="contador"></h3>
-
 <div id="contenedor"></div>
 
 </body>

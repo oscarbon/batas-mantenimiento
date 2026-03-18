@@ -197,15 +197,7 @@ console.error(error);
 return;
 }
 
-contenedor.innerHTML="";
-contador.innerText="Solicitudes activas: "+data.length;
-
-data.forEach(s=>{
-
-let card=document.createElement("div");
-card.className="card";
-
-card.innerHTML=`
+card.innerHTML = `
 <p><b>Empleado:</b> ${s.empleado}</p>
 <p><b>Bata:</b> ${s.bata}</p>
 <p><b>Desperfecto:</b> ${s.desperfecto}</p>
@@ -216,13 +208,15 @@ ${s.desperfecto==="Tela rasgada" && s.detalle ?
 <p><b>Hora:</b> ${new Date(s.hora).toLocaleString()}</p>
 
 ${s.temporal?
-`<button onclick="completar('${s.id}','arreglo')">Arreglo</button>
-<button onclick="completar('${s.id}','cambio')">Cambio</button>`
+
+`<button class="btn success" onclick="completar('${s.id}','arreglo')">✔ Arreglo</button>
+<button class="btn primary" onclick="completar('${s.id}','cambio')">🔄 Cambio</button>`
+
 :
-`<button onclick="activarTemporal('${s.id}')">Temporal</button>`
+
+`<button class="btn warning" onclick="activarTemporal('${s.id}')">⏳ Temporal</button>`
 }
 `;
-
 contenedor.appendChild(card);
 
 });
