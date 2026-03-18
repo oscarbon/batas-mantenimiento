@@ -216,10 +216,10 @@ ${s.desperfecto==="Tela rasgada" && s.detalle ?
 <p><b>Hora:</b> ${new Date(s.hora).toLocaleString()}</p>
 
 ${s.temporal?
-`<button onclick="completar('${s.id}','arreglo')">Arreglo</button>
-<button onclick="completar('${s.id}','cambio')">Cambio</button>`
+`<button class="btn btn-arreglo" onclick="completar('${s.id}','arreglo')">✔ Arreglo</button>
+<button class="btn btn-cambio" onclick="completar('${s.id}','cambio')">🔄 Cambio</button>`
 :
-`<button onclick="activarTemporal('${s.id}')">Temporal</button>`
+`<button class="btn btn-temporal" onclick="activarTemporal('${s.id}')">⏳ Temporal</button>`
 }
 `;
 
