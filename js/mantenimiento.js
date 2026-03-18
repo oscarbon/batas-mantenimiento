@@ -94,7 +94,7 @@ XLSX.writeFile(wb, "reporte_"+fecha+".xlsx");
 }
 
 /* =========================
-   LOG ENTRADA/SALIDA
+   LOG
 ========================= */
 
 async function registrarEntrada(correo){
@@ -134,9 +134,7 @@ window.addEventListener("beforeunload", registrarSalida);
 window.logout = function(){
 
 registrarSalida();
-
 localStorage.removeItem("usuario");
-
 window.location.href="login.html";
 
 }
@@ -159,7 +157,7 @@ bordado <= 50 ? "red" : "black";
 }
 
 /* =========================
-   CARGAR INVENTARIO
+   INVENTARIO DB
 ========================= */
 
 async function cargarInventario(){
@@ -240,7 +238,6 @@ let card=document.createElement("div");
 card.className="card";
 
 card.innerHTML=`
-
 <p><b>Empleado:</b> ${s.empleado}</p>
 <p><b>Bata:</b> ${s.bata}</p>
 <p><b>Desperfecto:</b> ${s.desperfecto}</p>
@@ -251,19 +248,11 @@ ${s.desperfecto==="Tela rasgada" && s.detalle ?
 <p><b>Hora:</b> ${new Date(s.hora).toLocaleString()}</p>
 
 ${s.temporal?
-
-`
-<button onclick="completar('${s.id}','arreglo')">Arreglo</button>
-<button onclick="completar('${s.id}','cambio')">Cambio</button>
-`
-
+`<button onclick="completar('${s.id}','arreglo')">Arreglo</button>
+<button onclick="completar('${s.id}','cambio')">Cambio</button>`
 :
-
-`
-<button onclick="activarTemporal('${s.id}')">Temporal</button>
-`
+`<button onclick="activarTemporal('${s.id}')">Temporal</button>`
 }
-
 `;
 
 contenedor.appendChild(card);
@@ -299,20 +288,6 @@ await supabaseClient.rpc("descontar_inventario", {
 tipo: data.desperfecto
 });
 
-const {data:inv}=await supabaseClient
-.from("inventario")
-.select("*")
-.eq("id",1)
-.single();
-
-if(inv.punos <= 50){
-await supabaseClient.from("inventario").update({alerta_punos:true}).eq("id",1);
-}
-
-if(inv.bordado <= 50){
-await supabaseClient.from("inventario").update({alerta_bordado:true}).eq("id",1);
-}
-
 await supabaseClient
 .from("solicitudes")
 .update({
@@ -326,7 +301,7 @@ cargarSolicitudes();
 }
 
 /* =========================
-   BLOQUEO EXCEL GLOBAL
+   BLOQUEO EXCEL
 ========================= */
 
 async function verificarDescargaGlobal(){
@@ -354,13 +329,12 @@ document.getElementById("bloqueoExcel").style.display="flex";
 }
 
 /* =========================
-   DESCARGAR EXCEL OBLIGATORIO
+   EXCEL PRO
 ========================= */
+
 window.descargarExcel = async function(){
 
 const usuario = localStorage.getItem("usuario");
-
-/* FECHAS */
 
 let ayer = new Date();
 ayer.setDate(ayer.getDate() - 1);
@@ -369,8 +343,6 @@ const inicio = new Date(ayer.setHours(0,0,0,0)).toISOString();
 const fin = new Date(ayer.setHours(23,59,59,999)).toISOString();
 
 const fechaAyer = inicio.split("T")[0];
-
-/* CONSULTAS */
 
 const {data:datosHoy} = await supabaseClient
 .from("solicitudes")
@@ -382,8 +354,6 @@ const {data:pendientes} = await supabaseClient
 .from("solicitudes")
 .select("*")
 .eq("estado","pendiente");
-
-/* FORMATEAR */
 
 const formatear = (data) => data.map(s => ({
 Empleado: s.empleado,
@@ -397,91 +367,24 @@ Fecha: new Date(s.hora).toLocaleString()
 const hoyData = formatear(datosHoy);
 const pendientesData = formatear(pendientes);
 
-/* =========================
-   RESUMEN
-========================= */
-
-const contar = (tipo) =>
-hoyData.filter(d => d.Desperfecto === tipo).length;
-
 const resumen = [
-{Tipo:"Puño roto", Cantidad:contar("Puño roto")},
-{Tipo:"Tela rasgada", Cantidad:contar("Tela rasgada")},
-{Tipo:"Botones", Cantidad:contar("Botones")},
+{Tipo:"Puño roto", Cantidad:hoyData.filter(d=>d.Desperfecto==="Puño roto").length},
+{Tipo:"Tela rasgada", Cantidad:hoyData.filter(d=>d.Desperfecto==="Tela rasgada").length},
+{Tipo:"Botones", Cantidad:hoyData.filter(d=>d.Desperfecto==="Botones").length},
 {Tipo:"Pendientes totales", Cantidad:pendientesData.length}
 ];
 
-/* =========================
-   CREAR EXCEL
-========================= */
-
 const wb = XLSX.utils.book_new();
 
-/* HOJA HOY */
-
-const wsHoy = XLSX.utils.json_to_sheet(hoyData);
-wsHoy["!cols"] = [{wch:15},{wch:10},{wch:20},{wch:20},{wch:15},{wch:20}];
-wsHoy["!autofilter"] = { ref: "A1:F1" };
-
-/* ENCABEZADO AZUL */
-
-["A1","B1","C1","D1","E1","F1"].forEach(c=>{
-if(wsHoy[c]){
-wsHoy[c].s = {
-fill:{ fgColor:{ rgb:"4F81BD" }},
-font:{ bold:true, color:{ rgb:"FFFFFF"}}
-};
-}
-});
-
-/* HOJA PENDIENTES */
-
-const wsPendientes = XLSX.utils.json_to_sheet(pendientesData);
-wsPendientes["!cols"] = [{wch:15},{wch:10},{wch:20},{wch:20},{wch:15},{wch:20}];
-wsPendientes["!autofilter"] = { ref: "A1:F1" };
-
-/* 🔴 PINTAR FILAS */
-
-pendientesData.forEach((_, i) => {
-const row = i + 1;
-
-["A","B","C","D","E","F"].forEach(col => {
-const cell = wsPendientes[col + row];
-if(cell){
-cell.s = {
-fill:{ fgColor:{ rgb:"FFCCCC"}}
-};
-}
-});
-});
-
-/* HOJA RESUMEN */
-
 const wsResumen = XLSX.utils.json_to_sheet(resumen);
-wsResumen["!cols"] = [{wch:25},{wch:15}];
-
-/* ENCABEZADO VERDE */
-
-["A1","B1"].forEach(c=>{
-if(wsResumen[c]){
-wsResumen[c].s = {
-fill:{ fgColor:{ rgb:"2ECC71"} },
-font:{ bold:true, color:{ rgb:"FFFFFF"}}
-};
-}
-});
-
-/* AGREGAR HOJAS */
+const wsHoy = XLSX.utils.json_to_sheet(hoyData);
+const wsPendientes = XLSX.utils.json_to_sheet(pendientesData);
 
 XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen");
 XLSX.utils.book_append_sheet(wb, wsHoy, "Hoy");
 XLSX.utils.book_append_sheet(wb, wsPendientes, "Pendientes");
 
-/* DESCARGAR */
-
 XLSX.writeFile(wb, "reporte_"+fechaAyer+".xlsx");
-
-/* REGISTRAR */
 
 await supabaseClient
 .from("reportes_descargados")
@@ -490,99 +393,10 @@ fecha:fechaAyer,
 usuario:usuario
 });
 
-/* DESBLOQUEAR */
-
-document.getElementById("bloqueoExcel").style.display="none";
-
-}/* =========================
-   FECHAS
-========================= */
-
-let ayer = new Date();
-ayer.setDate(ayer.getDate() - 1);
-
-const inicio = new Date(ayer.setHours(0,0,0,0)).toISOString();
-const fin = new Date(ayer.setHours(23,59,59,999)).toISOString();
-
-const fechaAyer = inicio.split("T")[0];
-
-/* =========================
-   CONSULTA 1: HOY
-========================= */
-
-const {data:datosHoy,error:errorHoy} = await supabaseClient
-.from("solicitudes")
-.select("*")
-.gte("hora",inicio)
-.lte("hora",fin);
-
-/* =========================
-   CONSULTA 2: PENDIENTES
-========================= */
-
-const {data:pendientes,error:errorPendientes} = await supabaseClient
-.from("solicitudes")
-.select("*")
-.eq("estado","pendiente");
-
-if(errorHoy || errorPendientes){
-alert("Error al generar Excel");
-console.error(errorHoy || errorPendientes);
-return;
-}
-
-/* =========================
-   FORMATEAR DATOS
-========================= */
-
-const formatear = (data) => data.map(s => ({
-Empleado: s.empleado,
-Bata: s.bata,
-Desperfecto: s.desperfecto,
-Detalle: s.detalle || "",
-Estado: s.estado,
-Fecha: new Date(s.hora).toLocaleString()
-}));
-
-const datosHoyFormateados = formatear(datosHoy);
-const pendientesFormateados = formatear(pendientes);
-
-/* =========================
-   CREAR EXCEL
-========================= */
-
-const wb = XLSX.utils.book_new();
-
-/* HOJA 1: HOY */
-
-const wsHoy = XLSX.utils.json_to_sheet(datosHoyFormateados);
-XLSX.utils.book_append_sheet(wb, wsHoy, "Hoy");
-
-/* HOJA 2: PENDIENTES */
-
-const wsPendientes = XLSX.utils.json_to_sheet(pendientesFormateados);
-XLSX.utils.book_append_sheet(wb, wsPendientes, "Pendientes");
-
-/* DESCARGAR */
-
-XLSX.writeFile(wb, "reporte_"+fechaAyer+".xlsx");
-
-/* =========================
-   REGISTRAR DESCARGA
-========================= */
-
-await supabaseClient
-.from("reportes_descargados")
-.insert({
-fecha:fechaAyer,
-usuario:usuario
-});
-
-/* DESBLOQUEAR */
-
 document.getElementById("bloqueoExcel").style.display="none";
 
 }
+
 /* =========================
    INICIO
 ========================= */
@@ -603,9 +417,7 @@ supabaseClient
 event:"INSERT",
 schema:"public",
 table:"solicitudes"
-},()=>{
-cargarSolicitudes();
-})
+},()=>cargarSolicitudes())
 .subscribe();
 
 supabaseClient
@@ -615,19 +427,8 @@ event:"UPDATE",
 schema:"public",
 table:"inventario"
 },payload=>{
-
 punos = payload.new.punos;
 bordado = payload.new.bordado;
-
 actualizarInventarioUI();
-
-if(payload.new.alerta_punos){
-alert("⚠ Inventario de puños bajo");
-}
-
-if(payload.new.alerta_bordado){
-alert("⚠ Inventario de bordado bajo");
-}
-
 })
 .subscribe();
