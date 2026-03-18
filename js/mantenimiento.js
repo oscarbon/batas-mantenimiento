@@ -356,12 +356,145 @@ document.getElementById("bloqueoExcel").style.display="flex";
 /* =========================
    DESCARGAR EXCEL OBLIGATORIO
 ========================= */
-
 window.descargarExcel = async function(){
 
 const usuario = localStorage.getItem("usuario");
 
+/* FECHAS */
+
+let ayer = new Date();
+ayer.setDate(ayer.getDate() - 1);
+
+const inicio = new Date(ayer.setHours(0,0,0,0)).toISOString();
+const fin = new Date(ayer.setHours(23,59,59,999)).toISOString();
+
+const fechaAyer = inicio.split("T")[0];
+
+/* CONSULTAS */
+
+const {data:datosHoy} = await supabaseClient
+.from("solicitudes")
+.select("*")
+.gte("hora",inicio)
+.lte("hora",fin);
+
+const {data:pendientes} = await supabaseClient
+.from("solicitudes")
+.select("*")
+.eq("estado","pendiente");
+
+/* FORMATEAR */
+
+const formatear = (data) => data.map(s => ({
+Empleado: s.empleado,
+Bata: s.bata,
+Desperfecto: s.desperfecto,
+Detalle: s.detalle || "",
+Estado: s.estado,
+Fecha: new Date(s.hora).toLocaleString()
+}));
+
+const hoyData = formatear(datosHoy);
+const pendientesData = formatear(pendientes);
+
 /* =========================
+   RESUMEN
+========================= */
+
+const contar = (tipo) =>
+hoyData.filter(d => d.Desperfecto === tipo).length;
+
+const resumen = [
+{Tipo:"Puño roto", Cantidad:contar("Puño roto")},
+{Tipo:"Tela rasgada", Cantidad:contar("Tela rasgada")},
+{Tipo:"Botones", Cantidad:contar("Botones")},
+{Tipo:"Pendientes totales", Cantidad:pendientesData.length}
+];
+
+/* =========================
+   CREAR EXCEL
+========================= */
+
+const wb = XLSX.utils.book_new();
+
+/* HOJA HOY */
+
+const wsHoy = XLSX.utils.json_to_sheet(hoyData);
+wsHoy["!cols"] = [{wch:15},{wch:10},{wch:20},{wch:20},{wch:15},{wch:20}];
+wsHoy["!autofilter"] = { ref: "A1:F1" };
+
+/* ENCABEZADO AZUL */
+
+["A1","B1","C1","D1","E1","F1"].forEach(c=>{
+if(wsHoy[c]){
+wsHoy[c].s = {
+fill:{ fgColor:{ rgb:"4F81BD" }},
+font:{ bold:true, color:{ rgb:"FFFFFF"}}
+};
+}
+});
+
+/* HOJA PENDIENTES */
+
+const wsPendientes = XLSX.utils.json_to_sheet(pendientesData);
+wsPendientes["!cols"] = [{wch:15},{wch:10},{wch:20},{wch:20},{wch:15},{wch:20}];
+wsPendientes["!autofilter"] = { ref: "A1:F1" };
+
+/* 🔴 PINTAR FILAS */
+
+pendientesData.forEach((_, i) => {
+const row = i + 1;
+
+["A","B","C","D","E","F"].forEach(col => {
+const cell = wsPendientes[col + row];
+if(cell){
+cell.s = {
+fill:{ fgColor:{ rgb:"FFCCCC"}}
+};
+}
+});
+});
+
+/* HOJA RESUMEN */
+
+const wsResumen = XLSX.utils.json_to_sheet(resumen);
+wsResumen["!cols"] = [{wch:25},{wch:15}];
+
+/* ENCABEZADO VERDE */
+
+["A1","B1"].forEach(c=>{
+if(wsResumen[c]){
+wsResumen[c].s = {
+fill:{ fgColor:{ rgb:"2ECC71"} },
+font:{ bold:true, color:{ rgb:"FFFFFF"}}
+};
+}
+});
+
+/* AGREGAR HOJAS */
+
+XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen");
+XLSX.utils.book_append_sheet(wb, wsHoy, "Hoy");
+XLSX.utils.book_append_sheet(wb, wsPendientes, "Pendientes");
+
+/* DESCARGAR */
+
+XLSX.writeFile(wb, "reporte_"+fechaAyer+".xlsx");
+
+/* REGISTRAR */
+
+await supabaseClient
+.from("reportes_descargados")
+.insert({
+fecha:fechaAyer,
+usuario:usuario
+});
+
+/* DESBLOQUEAR */
+
+document.getElementById("bloqueoExcel").style.display="none";
+
+}/* =========================
    FECHAS
 ========================= */
 
