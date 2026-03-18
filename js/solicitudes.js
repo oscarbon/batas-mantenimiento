@@ -1,4 +1,12 @@
+/* =========================
+   VARIABLE GLOBAL
+========================= */
+
 window.desperfectoSeleccionado = "";
+
+/* =========================
+   SELECCIONAR DESPERFECTO
+========================= */
 
 window.seleccionar = function(tipo,btn){
 
@@ -16,6 +24,32 @@ document.getElementById("extraTela").style.display="none";
 }
 
 }
+
+/* =========================
+   VALIDAR DUPLICADOS
+========================= */
+
+window.existeSolicitudPendiente = async function(bata){
+
+const {data,error}=await supabaseClient
+.from("solicitudes")
+.select("id")
+.eq("bata",bata)
+.eq("estado","pendiente");
+
+if(error){
+console.error(error);
+return false;
+}
+
+return data.length > 0;
+
+}
+
+/* =========================
+   ENVIAR SOLICITUD
+========================= */
+
 window.enviar = async function(){
 
 const empleado=document.getElementById("empleado").value;
@@ -29,6 +63,8 @@ return;
 
 }
 
+/* VALIDAR DUPLICADO */
+
 const existe=await existeSolicitudPendiente(bata);
 
 if(existe){
@@ -39,6 +75,8 @@ document.getElementById("mensaje").innerText=
 return;
 
 }
+
+/* INSERTAR EN SUPABASE */
 
 const {data,error}=await supabaseClient
 .from("solicitudes")
@@ -63,7 +101,9 @@ document.getElementById("mensaje").innerText="Error al enviar";
 
 document.getElementById("mensaje").innerText="Solicitud enviada ✔";
 
-/* 🔔 AQUI LLAMAMOS EDGE FUNCTION */
+/* =========================
+   🔔 LLAMAR EDGE FUNCTION
+========================= */
 
 try{
 
@@ -84,13 +124,13 @@ detalle: data.detalle
 console.error("Error enviando correo:", e);
 }
 
-/* borrar mensaje después de 3 segundos */
+/* =========================
+   LIMPIAR FORMULARIO
+========================= */
 
 setTimeout(()=>{
 document.getElementById("mensaje").innerText="";
 },3000);
-
-/* RESET FORMULARIO */
 
 document.getElementById("empleado").value="";
 document.getElementById("bata").value="";
@@ -98,11 +138,11 @@ document.getElementById("parteTela").value="";
 
 desperfectoSeleccionado="";
 
-/* ocultar campo de tela */
+/* ocultar campo */
 
 document.getElementById("extraTela").style.display="none";
 
-/* quitar selección de botones */
+/* quitar selección */
 
 document.querySelectorAll(".opciones button")
 .forEach(b=>b.classList.remove("seleccionado"));
