@@ -244,30 +244,76 @@ cargarSolicitudes();
 
 }
 
-window.completar = async function(id,tipo){
+window.completar = async function(id, tipo){
 
-const {data} = await supabaseClient
+/* BLOQUEAR BOTÓN */
+if(window.procesando) return;
+window.procesando = true;
+
+try{
+
+/* TRAER SOLICITUD ACTUAL */
+
+const {data, error} = await supabaseClient
 .from("solicitudes")
 .select("*")
-.eq("id",Number(id))
+.eq("id", Number(id))
 .single();
 
-await supabaseClient.rpc("descontar_inventario", {
+if(error || !data){
+alert("Error al obtener solicitud");
+window.procesando = false;
+return;
+}
+
+/* VALIDAR QUE SIGA PENDIENTE */
+
+if(data.estado !== "pendiente"){
+alert("Esta solicitud ya fue procesada");
+window.procesando = false;
+cargarSolicitudes();
+return;
+}
+
+/* DESCONTAR INVENTARIO */
+
+const {error:rpcError} = await supabaseClient.rpc("descontar_inventario", {
 tipo: data.desperfecto
 });
 
-await supabaseClient
+if(rpcError){
+alert("Error en inventario");
+window.procesando = false;
+return;
+}
+
+/* COMPLETAR */
+
+const {error:updateError} = await supabaseClient
 .from("solicitudes")
 .update({
 estado:"completado",
 resultado:tipo
 })
-.eq("id",Number(id));
+.eq("id", Number(id))
+.eq("estado","pendiente"); // 🔥 CLAVE
+
+if(updateError){
+alert("Error al completar");
+}
+
+/* REFRESH */
 
 cargarSolicitudes();
 
+} catch(e){
+console.error(e);
+alert("Error inesperado");
 }
 
+window.procesando = false;
+
+}
 /* =========================
    BLOQUEO EXCEL
 ========================= */
