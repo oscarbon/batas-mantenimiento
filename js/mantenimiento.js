@@ -423,6 +423,71 @@ const resumen = [
 /* CREAR EXCEL */
 
 const wb = XLSX.utils.book_new();
+window.descargarExcelHoy = async function(){
+
+/* FECHA HOY */
+
+let hoy = new Date();
+
+const inicio = new Date(hoy.setHours(0,0,0,0)).toISOString();
+const fin = new Date(hoy.setHours(23,59,59,999)).toISOString();
+
+const fechaHoy = inicio.split("T")[0];
+
+/* CONSULTAR DATOS */
+
+const {data:datosHoy, error} = await supabaseClient
+.from("solicitudes")
+.select("*")
+.gte("hora",inicio)
+.lte("hora",fin);
+
+if(error){
+alert("Error al obtener datos");
+return;
+}
+
+/* FORMATEAR */
+
+const formatear = (data) => data.map(s => ({
+Empleado: s.empleado,
+Bata: s.bata,
+Desperfecto: s.desperfecto,
+Detalle: s.detalle || "",
+Estado: s.estado,
+Fecha: new Date(s.hora).toLocaleString()
+}));
+
+const hoyData = formatear(datosHoy);
+
+/* RESUMEN */
+
+const resumen = [
+{Tipo:"Puño roto", Cantidad:hoyData.filter(d=>d.Desperfecto==="Puño roto").length},
+{Tipo:"Tela rasgada", Cantidad:hoyData.filter(d=>d.Desperfecto==="Tela rasgada").length},
+{Tipo:"Botones", Cantidad:hoyData.filter(d=>d.Desperfecto==="Botones").length},
+{Tipo:"Total", Cantidad:hoyData.length}
+];
+
+/* CREAR EXCEL */
+
+const wb = XLSX.utils.book_new();
+
+/* RESUMEN */
+
+const wsResumen = XLSX.utils.json_to_sheet(resumen);
+XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen");
+
+/* HOY */
+
+const wsHoy = XLSX.utils.json_to_sheet(hoyData);
+XLSX.utils.book_append_sheet(wb, wsHoy, "Hoy");
+
+/* DESCARGAR */
+
+XLSX.writeFile(wb, "reporte_hoy_"+fechaHoy+".xlsx");
+
+}
 
 /* =========================
    📊 RESUMEN
