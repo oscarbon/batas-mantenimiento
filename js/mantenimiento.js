@@ -361,6 +361,10 @@ window.descargarExcel = async function(){
 
 const usuario = localStorage.getItem("usuario");
 
+/* =========================
+   FECHAS
+========================= */
+
 let ayer = new Date();
 ayer.setDate(ayer.getDate() - 1);
 
@@ -369,23 +373,70 @@ const fin = new Date(ayer.setHours(23,59,59,999)).toISOString();
 
 const fechaAyer = inicio.split("T")[0];
 
-const {data,error} = await supabaseClient
+/* =========================
+   CONSULTA 1: HOY
+========================= */
+
+const {data:datosHoy,error:errorHoy} = await supabaseClient
 .from("solicitudes")
 .select("*")
 .gte("hora",inicio)
 .lte("hora",fin);
 
-if(error){
+/* =========================
+   CONSULTA 2: PENDIENTES
+========================= */
+
+const {data:pendientes,error:errorPendientes} = await supabaseClient
+.from("solicitudes")
+.select("*")
+.eq("estado","pendiente");
+
+if(errorHoy || errorPendientes){
 alert("Error al generar Excel");
+console.error(errorHoy || errorPendientes);
 return;
 }
 
-const ws = XLSX.utils.json_to_sheet(data);
+/* =========================
+   FORMATEAR DATOS
+========================= */
+
+const formatear = (data) => data.map(s => ({
+Empleado: s.empleado,
+Bata: s.bata,
+Desperfecto: s.desperfecto,
+Detalle: s.detalle || "",
+Estado: s.estado,
+Fecha: new Date(s.hora).toLocaleString()
+}));
+
+const datosHoyFormateados = formatear(datosHoy);
+const pendientesFormateados = formatear(pendientes);
+
+/* =========================
+   CREAR EXCEL
+========================= */
+
 const wb = XLSX.utils.book_new();
 
-XLSX.utils.book_append_sheet(wb, ws, "Reporte");
+/* HOJA 1: HOY */
+
+const wsHoy = XLSX.utils.json_to_sheet(datosHoyFormateados);
+XLSX.utils.book_append_sheet(wb, wsHoy, "Hoy");
+
+/* HOJA 2: PENDIENTES */
+
+const wsPendientes = XLSX.utils.json_to_sheet(pendientesFormateados);
+XLSX.utils.book_append_sheet(wb, wsPendientes, "Pendientes");
+
+/* DESCARGAR */
 
 XLSX.writeFile(wb, "reporte_"+fechaAyer+".xlsx");
+
+/* =========================
+   REGISTRAR DESCARGA
+========================= */
 
 await supabaseClient
 .from("reportes_descargados")
@@ -394,10 +445,11 @@ fecha:fechaAyer,
 usuario:usuario
 });
 
+/* DESBLOQUEAR */
+
 document.getElementById("bloqueoExcel").style.display="none";
 
 }
-
 /* =========================
    INICIO
 ========================= */
