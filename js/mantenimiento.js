@@ -38,6 +38,62 @@ registrarEntrada(user);
 }
 
 /* =========================
+   ADMIN
+========================= */
+
+async function verificarAdmin(){
+
+const usuario = localStorage.getItem("usuario");
+
+const {data} = await supabaseClient
+.from("usuarios_permitidos")
+.select("rol")
+.eq("correo",usuario)
+.single();
+
+const btn = document.getElementById("btnExcelAdmin");
+
+if(btn && data && data.rol === "admin"){
+btn.style.display = "block";
+btn.onclick = descargarExcelManual;
+}
+
+}
+
+/* =========================
+   EXCEL MANUAL ADMIN
+========================= */
+
+window.descargarExcelManual = async function(){
+
+let hoy = new Date();
+
+const inicio = new Date(hoy.setHours(0,0,0,0)).toISOString();
+const fin = new Date(hoy.setHours(23,59,59,999)).toISOString();
+
+const fecha = inicio.split("T")[0];
+
+const {data,error} = await supabaseClient
+.from("solicitudes")
+.select("*")
+.gte("hora",inicio)
+.lte("hora",fin);
+
+if(error){
+alert("Error al generar Excel");
+return;
+}
+
+const ws = XLSX.utils.json_to_sheet(data);
+const wb = XLSX.utils.book_new();
+
+XLSX.utils.book_append_sheet(wb, ws, "Reporte");
+
+XLSX.writeFile(wb, "reporte_"+fecha+".xlsx");
+
+}
+
+/* =========================
    LOG ENTRADA/SALIDA
 ========================= */
 
@@ -51,9 +107,7 @@ const {data} = await supabaseClient
 
 if(data.length > 0) return;
 
-await supabaseClient
-.from("usuarios_log")
-.insert({correo});
+await supabaseClient.from("usuarios_log").insert({correo});
 
 }
 
@@ -183,7 +237,6 @@ contador.innerText="Solicitudes activas: "+data.length;
 data.forEach(s=>{
 
 let card=document.createElement("div");
-
 card.className="card";
 
 card.innerHTML=`
@@ -220,7 +273,7 @@ contenedor.appendChild(card);
 }
 
 /* =========================
-   TEMPORAL
+   ACCIONES
 ========================= */
 
 window.activarTemporal = async function(id){
@@ -234,10 +287,6 @@ cargarSolicitudes();
 
 }
 
-/* =========================
-   COMPLETAR
-========================= */
-
 window.completar = async function(id,tipo){
 
 const {data} = await supabaseClient
@@ -249,8 +298,6 @@ const {data} = await supabaseClient
 await supabaseClient.rpc("descontar_inventario", {
 tipo: data.desperfecto
 });
-
-/* ALERTA GLOBAL */
 
 const {data:inv}=await supabaseClient
 .from("inventario")
@@ -279,7 +326,7 @@ cargarSolicitudes();
 }
 
 /* =========================
-   🔒 BLOQUEO EXCEL GLOBAL
+   BLOQUEO EXCEL GLOBAL
 ========================= */
 
 async function verificarDescargaGlobal(){
@@ -301,15 +348,13 @@ const {data} = await supabaseClient
 .eq("usuario",usuario);
 
 if(!data || data.length === 0){
-
 document.getElementById("bloqueoExcel").style.display="flex";
-
 }
 
 }
 
 /* =========================
-   DESCARGAR EXCEL
+   DESCARGAR EXCEL OBLIGATORIO
 ========================= */
 
 window.descargarExcel = async function(){
@@ -342,8 +387,6 @@ XLSX.utils.book_append_sheet(wb, ws, "Reporte");
 
 XLSX.writeFile(wb, "reporte_"+fechaAyer+".xlsx");
 
-/* REGISTRAR DESCARGA */
-
 await supabaseClient
 .from("reportes_descargados")
 .insert({
@@ -360,6 +403,7 @@ document.getElementById("bloqueoExcel").style.display="none";
 ========================= */
 
 verificarUsuario();
+verificarAdmin();
 cargarSolicitudes();
 cargarInventario();
 verificarDescargaGlobal();
