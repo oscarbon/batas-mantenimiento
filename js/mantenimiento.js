@@ -1,6 +1,3 @@
-const contenedor = document.getElementById("contenedor");
-const contador = document.getElementById("contador");
-
 /* =========================
    INVENTARIO GLOBAL
 ========================= */
@@ -190,10 +187,18 @@ document.getElementById("suministrosForm").style.display="none";
 
 async function cargarSolicitudes(){
 
+const contenedor = document.getElementById("contenedor");
+const contador = document.getElementById("contador");
+
+if(!contenedor || !contador){
+console.error("❌ contenedor o contador no existen");
+return;
+}
+
 const {data,error}=await supabaseClient
 .from("solicitudes")
 .select("*")
-.eq("estado","pendiente")
+.or("estado.eq.pendiente,estado.is.null")
 .order("hora",{ascending:true});
 
 if(error){
@@ -228,6 +233,7 @@ ${s.temporal?
 `;
 
 contenedor.appendChild(card);
+
 });
 }
 
@@ -364,13 +370,45 @@ XLSX.writeFile(wb, "reporte_hoy_"+fechaHoy+".xlsx");
 }
 
 /* =========================
+   BLOQUEO EXCEL
+========================= */
+
+async function verificarDescargaGlobal(){
+
+const ahora = new Date();
+if(ahora.getHours() < 5) return;
+
+const usuario = localStorage.getItem("usuario");
+
+let ayer = new Date();
+ayer.setDate(ayer.getDate() - 1);
+
+const fechaAyer = ayer.toISOString().split("T")[0];
+
+const {data} = await supabaseClient
+.from("reportes_descargados")
+.select("*")
+.eq("fecha",fechaAyer)
+.eq("usuario",usuario);
+
+if(!data || data.length === 0){
+document.getElementById("bloqueoExcel").style.display="flex";
+}
+}
+
+/* =========================
    INICIO
 ========================= */
 
-verificarUsuario();
-verificarAdmin();
-cargarSolicitudes();
-cargarInventario();
+window.addEventListener("DOMContentLoaded", async () => {
+
+await verificarUsuario();
+await verificarAdmin();
+await cargarInventario();
+await cargarSolicitudes();
+await verificarDescargaGlobal();
+
+});
 
 /* =========================
    REALTIME
@@ -382,7 +420,10 @@ supabaseClient
 event:"*",
 schema:"public",
 table:"solicitudes"
-},()=>cargarSolicitudes())
+},()=>{
+console.log("🔄 Actualización realtime");
+cargarSolicitudes();
+})
 .subscribe();
 
 supabaseClient
