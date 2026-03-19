@@ -326,3 +326,24 @@ color:white;
 .btn-hoy:hover{
 background:#117864;
 }
+
+/* =========================
+   BLOQUE EXCEL USUARIO
+========================= */
+
+.bloque-excel{
+margin-top:30px;
+border-left:6px solid #16a085;
+background:#f9fbfc;
+}
+
+.bloque-excel h3{
+margin-top:0;
+color:#2c3e50;
+}
+
+.bloque-excel p{
+font-size:14px;
+color:#555;
+margin-bottom:15px;
+}

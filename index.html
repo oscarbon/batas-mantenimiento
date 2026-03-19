@@ -19,6 +19,7 @@
 
 <body>
 
+<!-- 🔷 FORMULARIO -->
 <div class="card">
 
 <h2>Solicitud de Bata</h2>
@@ -36,10 +37,6 @@
 
 <button onclick="seleccionar('Botones',this)">Botones</button>
 
-<button class="btn btn-hoy" onclick="window.descargarExcelHoyUsuario()">
-📊 Ver estado de solicitudes
-</button>
-
 </div>
 
 <div id="extraTela" style="display:none;">
@@ -49,7 +46,21 @@
 <button class="btn btn-enviar" onclick="enviar()">
 📤 Enviar Solicitud
 </button>
+
 <p id="mensaje"></p>
+
+</div>
+
+<!-- 🔷 BLOQUE SEPARADO (EXCEL) -->
+<div class="card bloque-excel">
+
+<h3>📊 Consulta de solicitudes</h3>
+
+<p>Puedes descargar un reporte con el estado actual de las solicitudes del día.</p>
+
+<button class="btn btn-hoy" onclick="window.descargarExcelHoyUsuario()">
+📅 Descargar Excel de Hoy
+</button>
 
 </div>
 

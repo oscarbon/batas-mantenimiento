@@ -45,6 +45,7 @@ const {data:datosHoy, error} = await supabaseClient
 .select("*")
 .gte("hora",inicio)
 .lte("hora",fin);
+.order("hora",{ascending:false});
 
 const {data:pendientes} = await supabaseClient
 .from("solicitudes")
