@@ -459,25 +459,93 @@ const fin = new Date(hoy.setHours(23,59,59,999)).toISOString();
 
 const fechaHoy = inicio.split("T")[0];
 
+/* CONSULTAS */
+
 const {data:datosHoy, error} = await supabaseClient
 .from("solicitudes")
 .select("*")
 .gte("hora",inicio)
 .lte("hora",fin);
 
+const {data:pendientes} = await supabaseClient
+.from("solicitudes")
+.select("*")
+.eq("estado","pendiente");
+
 if(error){
 alert("Error al obtener datos");
 return;
 }
 
-const wb = XLSX.utils.book_new();
-const ws = XLSX.utils.json_to_sheet(datosHoy);
+/* =========================
+   FORMATEO
+========================= */
 
-XLSX.utils.book_append_sheet(wb, ws, "Hoy");
+const formatear = (data) => data.map(s => ({
+Empleado: s.empleado,
+Bata: s.bata,
+Desperfecto: s.desperfecto,
+Detalle: s.detalle || "",
+Resultado: s.resultado || "",
+Estado: s.estado,
+Fecha: new Date(s.hora).toLocaleString()
+}));
+
+const hoyData = formatear(datosHoy);
+const pendientesData = formatear(pendientes);
+
+/* =========================
+   CREAR EXCEL
+========================= */
+
+const wb = XLSX.utils.book_new();
+
+/* ===== HOJA HOY ===== */
+
+const wsHoy = XLSX.utils.json_to_sheet(hoyData);
+
+wsHoy["!cols"] = [
+{wch:15}, // empleado
+{wch:10}, // bata
+{wch:20}, // desperfecto
+{wch:25}, // detalle
+{wch:15}, // resultado
+{wch:15}, // estado
+{wch:20}  // fecha
+];
+
+wsHoy["!autofilter"] = { ref: "A1:G1" };
+
+/* ===== HOJA PENDIENTES ===== */
+
+const wsPendientes = XLSX.utils.json_to_sheet(pendientesData);
+
+wsPendientes["!cols"] = [
+{wch:15},
+{wch:10},
+{wch:20},
+{wch:25},
+{wch:15},
+{wch:15},
+{wch:20}
+];
+
+wsPendientes["!autofilter"] = { ref: "A1:G1" };
+
+/* =========================
+   AGREGAR HOJAS
+========================= */
+
+XLSX.utils.book_append_sheet(wb, wsHoy, "Hoy");
+XLSX.utils.book_append_sheet(wb, wsPendientes, "Pendientes");
+
+/* =========================
+   DESCARGAR
+========================= */
 
 XLSX.writeFile(wb, "reporte_hoy_"+fechaHoy+".xlsx");
-}
 
+}
 /* =========================
    BLOQUEO EXCEL
 ========================= */
