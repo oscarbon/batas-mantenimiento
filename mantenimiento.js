@@ -1,104 +1,886 @@
-<!DOCTYPE html>
-<html lang="es">
+/* =========================
+   INVENTARIO GLOBAL
+========================= */
 
-<head>
+let punos = 0;
+let bordado = 0;
 
-<meta charset="UTF-8">
-<title>Panel de Mantenimiento</title>
 
-<meta name="viewport" content="width=device-width, initial-scale=1">
+/* =========================
+   LOGIN
+========================= */
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+async function verificarUsuario(){
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js"></script>
+const user = localStorage.getItem("usuario");
 
-<script src="js/mantenimiento.js?v=3"></script>
+if(!user){
+window.location.href = "login.html";
+return;
+}
 
-<link rel="stylesheet" href="css/estilos.css">
+const {data,error} = await supabaseClient
+.from("usuarios_permitidos")
+.select("*")
+.eq("correo",user)
+.single();
 
-</head>
+if(error || !data){
+localStorage.removeItem("usuario");
+window.location.href="login.html";
+return;
+}
 
-<body>
+registrarEntrada(user);
+}
 
-<!-- 🔒 BLOQUEO -->
-<div id="bloqueoExcel" style="
-display:none;
-position:fixed;
-top:0;
-left:0;
-width:100%;
-height:100%;
-background:rgba(0,0,0,0.8);
-color:white;
-z-index:9999;
-justify-content:center;
-align-items:center;
-flex-direction:column;
-">
 
-<h2>⚠ Debes descargar el Excel del día anterior</h2>
-<button onclick="descargarExcel()">Descargar Excel</button>
+/* =========================
+   ADMIN
+========================= */
 
-</div>
+async function verificarAdmin(){
 
-<!-- 🔐 HEADER -->
-<button class="btn-logout" onclick="logout()">
-⏻ Cerrar sesión
-</button>
+const usuario = localStorage.getItem("usuario");
 
-<button id="btnExcelAdmin" style="display:none;">
-📥 Descargar Excel (Admin)
-</button>
+const {data} = await supabaseClient
+.from("usuarios_permitidos")
+.select("rol")
+.eq("correo",usuario)
+.single();
 
-<button class="btn btn-hoy" onclick="window.descargarExcelHoy()">
-📅 Excel de Hoy
-</button>
+const btn = document.getElementById("btnExcelAdmin");
 
-<button class="btn btn-hoy" onclick="window.descargarExcelTresSemanas()">
-📊 Excel - Últimas 3 Semanas
-</button>
+if(btn && data && data.rol === "admin"){
+btn.style.display = "block";
+btn.onclick = descargarExcel;
+}
+}
 
-<h2>Panel de Mantenimiento</h2>
 
-<!-- INVENTARIO -->
-<div id="inventarioPanel">
+/* =========================
+   LOG
+========================= */
 
-<div class="inventarioHeader">
+async function registrarEntrada(correo){
 
-<button class="btnSuministros" onclick="toggleSuministros()">
-Suministros
-</button>
+const {data} = await supabaseClient
+.from("usuarios_log")
+.select("*")
+.eq("correo",correo)
+.is("salida",null);
 
-<div class="inventarioBoxes">
+if(data.length > 0) return;
 
-<div class="inventarioCard">
-<p>Puños</p>
-<span id="contadorPunos">0</span>
-</div>
+await supabaseClient.from("usuarios_log").insert({correo});
+}
 
-<div class="inventarioCard">
-<p>Bordado</p>
-<span id="contadorBordado">0</span>
-</div>
 
-</div>
+async function registrarSalida(){
 
-</div>
+const user = localStorage.getItem("usuario");
 
-<div id="suministrosForm" class="suministrosForm">
+if(user){
+await supabaseClient
+.from("usuarios_log")
+.update({salida:new Date()})
+.eq("correo",user)
+.is("salida",null);
+}
 
-<input id="inputPunos" type="number" placeholder="Cantidad de puños">
-<input id="inputBordado" type="number" placeholder="Cantidad de bordados">
+}
 
-<button onclick="guardarSuministros()">Guardar</button>
+window.addEventListener("beforeunload", registrarSalida);
 
-</div>
 
-</div>
+/* =========================
+   LOGOUT
+========================= */
 
-<h3 id="contador"></h3>
-<div id="contenedor"></div>
+window.logout = function(){
+registrarSalida();
+localStorage.removeItem("usuario");
+window.location.href="login.html";
+}
 
-</body>
-</html>
+
+/* =========================
+   INVENTARIO UI
+========================= */
+
+function actualizarInventarioUI(){
+
+document.getElementById("contadorPunos").innerText = punos;
+document.getElementById("contadorBordado").innerText = bordado;
+
+document.getElementById("contadorPunos").style.color =
+punos <= 50 ? "red" : "black";
+
+document.getElementById("contadorBordado").style.color =
+bordado <= 50 ? "red" : "black";
+
+
+/* ALERTAS */
+
+if(punos <= 50 && !window.alertaPunos){
+alert("⚠ Inventario bajo de PUÑOS");
+window.alertaPunos = true;
+}
+
+if(bordado <= 50 && !window.alertaBordado){
+alert("⚠ Inventario bajo de BORDADO");
+window.alertaBordado = true;
+}
+
+if(punos > 50) window.alertaPunos = false;
+if(bordado > 50) window.alertaBordado = false;
+
+}
+
+
+/* =========================
+   INVENTARIO DB
+========================= */
+
+async function cargarInventario(){
+
+const {data,error}=await supabaseClient
+.from("inventario")
+.select("*")
+.eq("id",1)
+.single();
+
+if(error){
+console.error(error);
+return;
+}
+
+punos = data.punos;
+bordado = data.bordado;
+
+actualizarInventarioUI();
+
+}
+
+
+/* =========================
+   SUMINISTROS
+========================= */
+
+window.toggleSuministros = function(){
+
+let form = document.getElementById("suministrosForm");
+
+form.style.display =
+form.style.display === "none" ? "block" : "none";
+
+}
+
+
+window.guardarSuministros = async function(){
+
+punos = Number(document.getElementById("inputPunos").value);
+bordado = Number(document.getElementById("inputBordado").value);
+
+await supabaseClient
+.from("inventario")
+.update({
+punos,
+bordado,
+alerta_punos:false,
+alerta_bordado:false
+})
+.eq("id",1);
+
+document.getElementById("suministrosForm").style.display="none";
+
+}
+
+
+/* =========================
+   SOLICITUDES
+========================= */
+
+async function cargarSolicitudes(){
+
+const contenedor = document.getElementById("contenedor");
+const contador = document.getElementById("contador");
+
+if(!contenedor || !contador){
+console.error("❌ contenedor o contador no existen");
+return;
+}
+
+const {data,error}=await supabaseClient
+.from("solicitudes")
+.select("*")
+.or("estado.eq.pendiente,estado.is.null")
+.order("hora",{ascending:true});
+
+if(error){
+console.error(error);
+return;
+}
+
+contenedor.innerHTML="";
+contador.innerText="Solicitudes activas: "+data.length;
+
+data.forEach(s=>{
+
+let card=document.createElement("div");
+
+card.className="card";
+
+card.innerHTML=`
+
+<p><b>Empleado:</b> ${s.empleado}</p>
+
+<p><b>Bata:</b> ${s.bata}</p>
+
+<p><b>Desperfecto:</b> ${s.desperfecto}</p>
+
+${s.desperfecto==="Tela rasgada" && s.detalle ?
+`<p><b>Detalle:</b> ${s.detalle}</p>`:""}
+
+<p><b>Hora:</b> ${new Date(s.hora).toLocaleString()}</p>
+
+${s.temporal?
+
+`<button class="btn btn-arreglo" onclick="completar('${s.id}','arreglo')">✔ Arreglo</button>
+
+<button class="btn btn-cambio" onclick="completar('${s.id}','cambio')">🔄 Cambio</button>`
+
+:
+
+`<button class="btn btn-temporal" onclick="activarTemporal('${s.id}')">⏳ Temporal</button>`
+
+}
+
+`;
+
+contenedor.appendChild(card);
+
+});
+
+}
+
+
+/* =========================
+   ACCIONES
+========================= */
+
+window.activarTemporal = async function(id){
+
+await supabaseClient
+.from("solicitudes")
+.update({temporal:true})
+.eq("id",Number(id));
+
+cargarSolicitudes();
+
+}
+
+
+window.completar = async function(id, tipo){
+
+if(window.procesando) return;
+
+window.procesando = true;
+
+try{
+
+const {data, error} = await supabaseClient
+.from("solicitudes")
+.select("*")
+.eq("id", Number(id))
+.single();
+
+if(error || !data){
+alert("Error al obtener solicitud");
+window.procesando = false;
+return;
+}
+
+if(data.estado !== "pendiente"){
+alert("Esta solicitud ya fue procesada");
+window.procesando = false;
+cargarSolicitudes();
+return;
+}
+
+await supabaseClient.rpc("descontar_inventario", {
+tipo: data.desperfecto
+});
+
+await supabaseClient
+.from("solicitudes")
+.update({
+estado:"completado",
+resultado:tipo
+})
+.eq("id", Number(id))
+.eq("estado","pendiente");
+
+cargarSolicitudes();
+
+}catch(e){
+
+console.error(e);
+alert("Error inesperado");
+
+}
+
+window.procesando = false;
+
+}
+
+
+/* =========================
+   EXCEL AYER
+========================= */
+
+window.descargarExcel = async function(){
+
+const usuario = localStorage.getItem("usuario");
+
+/* FECHA AYER */
+
+let ayer = new Date();
+
+ayer.setDate(ayer.getDate() - 1);
+
+const inicio = new Date(ayer.setHours(0,0,0,0)).toISOString();
+
+const fin = new Date(ayer.setHours(23,59,59,999)).toISOString();
+
+const fechaAyer = inicio.split("T")[0];
+
+
+/* CONSULTAS */
+
+const {data:datosHoy} = await supabaseClient
+.from("solicitudes")
+.select("*")
+.gte("hora",inicio)
+.lte("hora",fin);
+
+const {data:pendientes} = await supabaseClient
+.from("solicitudes")
+.select("*")
+.eq("estado","pendiente");
+
+
+/* FORMATO */
+
+const formatear = (data) => data.map(s => ({
+
+Empleado: s.empleado,
+Bata: s.bata,
+Desperfecto: s.desperfecto,
+Detalle: s.detalle || "",
+Estado: s.estado,
+Fecha: new Date(s.hora).toLocaleString()
+
+}));
+
+
+const hoyData = formatear(datosHoy);
+
+const pendientesData = formatear(pendientes);
+
+
+/* RESUMEN */
+
+const resumen = [
+
+{Tipo:"Puño roto", Cantidad:hoyData.filter(d=>d.Desperfecto==="Puño roto").length},
+
+{Tipo:"Tela rasgada", Cantidad:hoyData.filter(d=>d.Desperfecto==="Tela rasgada").length},
+
+{Tipo:"Botones", Cantidad:hoyData.filter(d=>d.Desperfecto==="Botones").length},
+
+{Tipo:"Pendientes", Cantidad:pendientesData.length},
+
+{Tipo:"TOTAL", Cantidad:hoyData.length}
+
+];
+
+
+/* CREAR EXCEL */
+
+const wb = XLSX.utils.book_new();
+
+
+/* =========================
+   📊 RESUMEN
+========================= */
+
+const wsResumen = XLSX.utils.json_to_sheet(resumen);
+
+wsResumen["!cols"] = [
+{wch:25},
+{wch:15}
+];
+
+["A1","B1"].forEach(c=>{
+
+if(wsResumen[c]){
+
+wsResumen[c].s = {
+
+fill:{ fgColor:{ rgb:"2ECC71"}},
+
+font:{ bold:true, color:{ rgb:"FFFFFF"}}
+
+};
+
+}
+
+});
+
+
+/* =========================
+   📄 HOY
+========================= */
+
+const wsHoy = XLSX.utils.json_to_sheet(hoyData);
+
+wsHoy["!cols"] = [
+
+{wch:15},
+{wch:10},
+{wch:20},
+{wch:25},
+{wch:15},
+{wch:20}
+
+];
+
+wsHoy["!autofilter"] = { ref: "A1:F1" };
+
+
+["A1","B1","C1","D1","E1","F1"].forEach(c=>{
+
+if(wsHoy[c]){
+
+wsHoy[c].s = {
+
+fill:{ fgColor:{ rgb:"4F81BD"}},
+
+font:{ bold:true, color:{ rgb:"FFFFFF"}}
+
+};
+
+}
+
+});
+
+
+/* =========================
+   🚨 PENDIENTES
+========================= */
+
+const wsPendientes = XLSX.utils.json_to_sheet(pendientesData);
+
+wsPendientes["!cols"] = [
+
+{wch:15},
+{wch:10},
+{wch:20},
+{wch:25},
+{wch:15},
+{wch:20}
+
+];
+
+wsPendientes["!autofilter"] = { ref: "A1:F1" };
+
+
+pendientesData.forEach((_, i)=>{
+
+const row = i + 2;
+
+["A","B","C","D","E","F"].forEach(col=>{
+
+const cell = wsPendientes[col + row];
+
+if(cell){
+
+cell.s = {
+
+fill:{ fgColor:{ rgb:"FFCCCC"}}
+
+};
+
+}
+
+});
+
+});
+
+
+/* AGREGAR HOJAS */
+
+XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen");
+
+XLSX.utils.book_append_sheet(wb, wsHoy, "Hoy");
+
+XLSX.utils.book_append_sheet(wb, wsPendientes, "Pendientes");
+
+
+/* DESCARGAR */
+
+XLSX.writeFile(wb, "reporte_"+fechaAyer+".xlsx");
+
+
+/* REGISTRAR */
+
+await supabaseClient
+.from("reportes_descargados")
+.insert({
+
+fecha:fechaAyer,
+usuario:usuario
+
+});
+
+
+/* DESBLOQUEAR */
+
+document.getElementById("bloqueoExcel").style.display="none";
+
+}
+
+
+/* =========================
+   EXCEL HOY
+========================= */
+
+window.descargarExcelHoy = async function(){
+
+let hoy = new Date();
+
+const inicio = new Date(hoy.setHours(0,0,0,0)).toISOString();
+
+const fin = new Date(hoy.setHours(23,59,59,999)).toISOString();
+
+const fechaHoy = inicio.split("T")[0];
+
+
+/* CONSULTAS */
+
+const {data:datosHoy, error} = await supabaseClient
+.from("solicitudes")
+.select("*")
+.gte("hora",inicio)
+.lte("hora",fin);
+
+const {data:pendientes} = await supabaseClient
+.from("solicitudes")
+.select("*")
+.eq("estado","pendiente");
+
+if(error){
+
+alert("Error al obtener datos");
+
+return;
+
+}
+
+
+/* =========================
+   FORMATEO
+========================= */
+
+const formatear = (data) => data.map(s => ({
+
+Empleado: s.empleado,
+Bata: s.bata,
+Desperfecto: s.desperfecto,
+Detalle: s.detalle || "",
+Resultado: s.resultado || "",
+Estado: s.estado,
+Fecha: new Date(s.hora).toLocaleString()
+
+}));
+
+
+const hoyData = formatear(datosHoy);
+
+const pendientesData = formatear(pendientes);
+
+
+/* =========================
+   CREAR EXCEL
+========================= */
+
+const wb = XLSX.utils.book_new();
+
+
+/* ===== HOJA HOY ===== */
+
+const wsHoy = XLSX.utils.json_to_sheet(hoyData);
+
+wsHoy["!cols"] = [
+
+{wch:15},
+{wch:10},
+{wch:20},
+{wch:25},
+{wch:15},
+{wch:15},
+{wch:20}
+
+];
+
+wsHoy["!autofilter"] = { ref: "A1:G1" };
+
+
+/* ===== HOJA PENDIENTES ===== */
+
+const wsPendientes = XLSX.utils.json_to_sheet(pendientesData);
+
+wsPendientes["!cols"] = [
+
+{wch:15},
+{wch:10},
+{wch:20},
+{wch:25},
+{wch:15},
+{wch:15},
+{wch:20}
+
+];
+
+wsPendientes["!autofilter"] = { ref: "A1:G1" };
+
+
+/* =========================
+   AGREGAR HOJAS
+========================= */
+
+XLSX.utils.book_append_sheet(wb, wsHoy, "Hoy");
+
+XLSX.utils.book_append_sheet(wb, wsPendientes, "Pendientes");
+
+
+/* =========================
+   DESCARGAR
+========================= */
+
+XLSX.writeFile(wb, "reporte_hoy_"+fechaHoy+".xlsx");
+
+}
+
+
+/* =========================
+   EXCEL ÚLTIMAS 3 SEMANAS
+========================= */
+
+window.descargarExcelTresSemanas = async function(){
+
+let hoy = new Date();
+
+
+/* FECHA INICIO: HACE 21 DÍAS */
+
+let fechaInicio = new Date(hoy);
+
+fechaInicio.setDate(fechaInicio.getDate() - 21);
+
+fechaInicio.setHours(0,0,0,0);
+
+
+/* FECHA FINAL: HOY */
+
+let fechaFin = new Date(hoy);
+
+fechaFin.setHours(23,59,59,999);
+
+
+const inicio = fechaInicio.toISOString();
+
+const fin = fechaFin.toISOString();
+
+
+/* CONSULTAR SOLICITUDES */
+
+const {data, error} = await supabaseClient
+.from("solicitudes")
+.select("*")
+.gte("hora",inicio)
+.lte("hora",fin)
+.order("hora",{ascending:false});
+
+
+if(error){
+
+console.error(error);
+
+alert("Error al obtener las solicitudes");
+
+return;
+
+}
+
+
+/* FORMATEAR */
+
+const solicitudesData = data.map(s => ({
+
+Empleado: s.empleado,
+Bata: s.bata,
+Desperfecto: s.desperfecto,
+Detalle: s.detalle || "",
+Resultado: s.resultado || "",
+Estado: s.estado,
+Fecha: new Date(s.hora).toLocaleString()
+
+}));
+
+
+/* CREAR EXCEL */
+
+const wb = XLSX.utils.book_new();
+
+const ws = XLSX.utils.json_to_sheet(solicitudesData);
+
+
+/* ANCHO DE COLUMNAS */
+
+ws["!cols"] = [
+
+{wch:15},
+{wch:10},
+{wch:20},
+{wch:25},
+{wch:15},
+{wch:15},
+{wch:20}
+
+];
+
+
+/* FILTRO */
+
+ws["!autofilter"] = { ref:"A1:G1" };
+
+
+/* AGREGAR HOJA */
+
+XLSX.utils.book_append_sheet(
+wb,
+ws,
+"Solicitudes"
+);
+
+
+/* NOMBRE DEL ARCHIVO */
+
+const fechaHoy = hoy.toISOString().split("T")[0];
+
+XLSX.writeFile(
+wb,
+"solicitudes_ultimas_3_semanas_"+fechaHoy+".xlsx"
+);
+
+}
+
+
+/* =========================
+   BLOQUEO EXCEL
+========================= */
+
+async function verificarDescargaGlobal(){
+
+const ahora = new Date();
+
+if(ahora.getHours() < 5) return;
+
+const usuario = localStorage.getItem("usuario");
+
+let ayer = new Date();
+
+ayer.setDate(ayer.getDate() - 1);
+
+const fechaAyer = ayer.toISOString().split("T")[0];
+
+const {data} = await supabaseClient
+.from("reportes_descargados")
+.select("*")
+.eq("fecha",fechaAyer)
+.eq("usuario",usuario);
+
+if(!data || data.length === 0){
+
+document.getElementById("bloqueoExcel").style.display="flex";
+
+}
+
+}
+
+
+/* =========================
+   INICIO
+========================= */
+
+window.addEventListener("DOMContentLoaded", async () => {
+
+await verificarUsuario();
+
+await verificarAdmin();
+
+await cargarInventario();
+
+await cargarSolicitudes();
+
+await verificarDescargaGlobal();
+
+});
+
+
+/* =========================
+   REALTIME
+========================= */
+
+supabaseClient
+.channel("solicitudes")
+.on("postgres_changes",{
+
+event:"*",
+
+schema:"public",
+
+table:"solicitudes"
+
+},()=>{
+
+console.log("🔄 Actualización realtime");
+
+cargarSolicitudes();
+
+})
+.subscribe();
+
+
+supabaseClient
+.channel("inventario")
+.on("postgres_changes",{
+
+event:"UPDATE",
+
+schema:"public",
+
+table:"inventario"
+
+},payload=>{
+
+punos = payload.new.punos;
+
+bordado = payload.new.bordado;
+
+actualizarInventarioUI();
+
+})
+.subscribe();
