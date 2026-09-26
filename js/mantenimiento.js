@@ -5,6 +5,7 @@
 let punos = 0;
 let bordado = 0;
 
+
 /* =========================
    LOGIN
 ========================= */
@@ -33,6 +34,7 @@ return;
 registrarEntrada(user);
 }
 
+
 /* =========================
    ADMIN
 ========================= */
@@ -55,6 +57,7 @@ btn.onclick = descargarExcel;
 }
 }
 
+
 /* =========================
    LOG
 ========================= */
@@ -72,6 +75,7 @@ if(data.length > 0) return;
 await supabaseClient.from("usuarios_log").insert({correo});
 }
 
+
 async function registrarSalida(){
 
 const user = localStorage.getItem("usuario");
@@ -83,9 +87,11 @@ await supabaseClient
 .eq("correo",user)
 .is("salida",null);
 }
+
 }
 
 window.addEventListener("beforeunload", registrarSalida);
+
 
 /* =========================
    LOGOUT
@@ -96,6 +102,7 @@ registrarSalida();
 localStorage.removeItem("usuario");
 window.location.href="login.html";
 }
+
 
 /* =========================
    INVENTARIO UI
@@ -112,6 +119,7 @@ punos <= 50 ? "red" : "black";
 document.getElementById("contadorBordado").style.color =
 bordado <= 50 ? "red" : "black";
 
+
 /* ALERTAS */
 
 if(punos <= 50 && !window.alertaPunos){
@@ -126,7 +134,9 @@ window.alertaBordado = true;
 
 if(punos > 50) window.alertaPunos = false;
 if(bordado > 50) window.alertaBordado = false;
+
 }
+
 
 /* =========================
    INVENTARIO DB
@@ -149,7 +159,9 @@ punos = data.punos;
 bordado = data.bordado;
 
 actualizarInventarioUI();
+
 }
+
 
 /* =========================
    SUMINISTROS
@@ -161,7 +173,9 @@ let form = document.getElementById("suministrosForm");
 
 form.style.display =
 form.style.display === "none" ? "block" : "none";
+
 }
+
 
 window.guardarSuministros = async function(){
 
@@ -179,7 +193,9 @@ alerta_bordado:false
 .eq("id",1);
 
 document.getElementById("suministrosForm").style.display="none";
+
 }
+
 
 /* =========================
    SOLICITUDES
@@ -212,11 +228,15 @@ contador.innerText="Solicitudes activas: "+data.length;
 data.forEach(s=>{
 
 let card=document.createElement("div");
+
 card.className="card";
 
 card.innerHTML=`
+
 <p><b>Empleado:</b> ${s.empleado}</p>
+
 <p><b>Bata:</b> ${s.bata}</p>
+
 <p><b>Desperfecto:</b> ${s.desperfecto}</p>
 
 ${s.desperfecto==="Tela rasgada" && s.detalle ?
@@ -225,17 +245,25 @@ ${s.desperfecto==="Tela rasgada" && s.detalle ?
 <p><b>Hora:</b> ${new Date(s.hora).toLocaleString()}</p>
 
 ${s.temporal?
+
 `<button class="btn btn-arreglo" onclick="completar('${s.id}','arreglo')">✔ Arreglo</button>
+
 <button class="btn btn-cambio" onclick="completar('${s.id}','cambio')">🔄 Cambio</button>`
+
 :
+
 `<button class="btn btn-temporal" onclick="activarTemporal('${s.id}')">⏳ Temporal</button>`
+
 }
+
 `;
 
 contenedor.appendChild(card);
 
 });
+
 }
+
 
 /* =========================
    ACCIONES
@@ -249,11 +277,14 @@ await supabaseClient
 .eq("id",Number(id));
 
 cargarSolicitudes();
+
 }
+
 
 window.completar = async function(id, tipo){
 
 if(window.procesando) return;
+
 window.procesando = true;
 
 try{
@@ -293,12 +324,16 @@ resultado:tipo
 cargarSolicitudes();
 
 }catch(e){
+
 console.error(e);
 alert("Error inesperado");
+
 }
 
 window.procesando = false;
+
 }
+
 
 /* =========================
    EXCEL AYER
@@ -311,12 +346,15 @@ const usuario = localStorage.getItem("usuario");
 /* FECHA AYER */
 
 let ayer = new Date();
+
 ayer.setDate(ayer.getDate() - 1);
 
 const inicio = new Date(ayer.setHours(0,0,0,0)).toISOString();
+
 const fin = new Date(ayer.setHours(23,59,59,999)).toISOString();
 
 const fechaAyer = inicio.split("T")[0];
+
 
 /* CONSULTAS */
 
@@ -331,33 +369,47 @@ const {data:pendientes} = await supabaseClient
 .select("*")
 .eq("estado","pendiente");
 
+
 /* FORMATO */
 
 const formatear = (data) => data.map(s => ({
+
 Empleado: s.empleado,
 Bata: s.bata,
 Desperfecto: s.desperfecto,
 Detalle: s.detalle || "",
 Estado: s.estado,
 Fecha: new Date(s.hora).toLocaleString()
+
 }));
 
+
 const hoyData = formatear(datosHoy);
+
 const pendientesData = formatear(pendientes);
+
 
 /* RESUMEN */
 
 const resumen = [
+
 {Tipo:"Puño roto", Cantidad:hoyData.filter(d=>d.Desperfecto==="Puño roto").length},
+
 {Tipo:"Tela rasgada", Cantidad:hoyData.filter(d=>d.Desperfecto==="Tela rasgada").length},
+
 {Tipo:"Botones", Cantidad:hoyData.filter(d=>d.Desperfecto==="Botones").length},
+
 {Tipo:"Pendientes", Cantidad:pendientesData.length},
+
 {Tipo:"TOTAL", Cantidad:hoyData.length}
+
 ];
+
 
 /* CREAR EXCEL */
 
 const wb = XLSX.utils.book_new();
+
 
 /* =========================
    📊 RESUMEN
@@ -365,16 +417,27 @@ const wb = XLSX.utils.book_new();
 
 const wsResumen = XLSX.utils.json_to_sheet(resumen);
 
-wsResumen["!cols"] = [{wch:25},{wch:15}];
+wsResumen["!cols"] = [
+{wch:25},
+{wch:15}
+];
 
 ["A1","B1"].forEach(c=>{
+
 if(wsResumen[c]){
+
 wsResumen[c].s = {
+
 fill:{ fgColor:{ rgb:"2ECC71"}},
+
 font:{ bold:true, color:{ rgb:"FFFFFF"}}
+
 };
+
 }
+
 });
+
 
 /* =========================
    📄 HOY
@@ -383,19 +446,35 @@ font:{ bold:true, color:{ rgb:"FFFFFF"}}
 const wsHoy = XLSX.utils.json_to_sheet(hoyData);
 
 wsHoy["!cols"] = [
-{wch:15},{wch:10},{wch:20},{wch:25},{wch:15},{wch:20}
+
+{wch:15},
+{wch:10},
+{wch:20},
+{wch:25},
+{wch:15},
+{wch:20}
+
 ];
 
 wsHoy["!autofilter"] = { ref: "A1:F1" };
 
+
 ["A1","B1","C1","D1","E1","F1"].forEach(c=>{
+
 if(wsHoy[c]){
+
 wsHoy[c].s = {
+
 fill:{ fgColor:{ rgb:"4F81BD"}},
+
 font:{ bold:true, color:{ rgb:"FFFFFF"}}
+
 };
+
 }
+
 });
+
 
 /* =========================
    🚨 PENDIENTES
@@ -404,48 +483,75 @@ font:{ bold:true, color:{ rgb:"FFFFFF"}}
 const wsPendientes = XLSX.utils.json_to_sheet(pendientesData);
 
 wsPendientes["!cols"] = [
-{wch:15},{wch:10},{wch:20},{wch:25},{wch:15},{wch:20}
+
+{wch:15},
+{wch:10},
+{wch:20},
+{wch:25},
+{wch:15},
+{wch:20}
+
 ];
 
 wsPendientes["!autofilter"] = { ref: "A1:F1" };
 
+
 pendientesData.forEach((_, i)=>{
+
 const row = i + 2;
 
 ["A","B","C","D","E","F"].forEach(col=>{
+
 const cell = wsPendientes[col + row];
+
 if(cell){
+
 cell.s = {
+
 fill:{ fgColor:{ rgb:"FFCCCC"}}
+
 };
+
 }
+
 });
+
 });
+
 
 /* AGREGAR HOJAS */
 
 XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen");
+
 XLSX.utils.book_append_sheet(wb, wsHoy, "Hoy");
+
 XLSX.utils.book_append_sheet(wb, wsPendientes, "Pendientes");
+
 
 /* DESCARGAR */
 
 XLSX.writeFile(wb, "reporte_"+fechaAyer+".xlsx");
+
 
 /* REGISTRAR */
 
 await supabaseClient
 .from("reportes_descargados")
 .insert({
+
 fecha:fechaAyer,
 usuario:usuario
+
 });
+
 
 /* DESBLOQUEAR */
 
 document.getElementById("bloqueoExcel").style.display="none";
 
 }
+
+
 /* =========================
    EXCEL HOY
 ========================= */
@@ -455,9 +561,11 @@ window.descargarExcelHoy = async function(){
 let hoy = new Date();
 
 const inicio = new Date(hoy.setHours(0,0,0,0)).toISOString();
+
 const fin = new Date(hoy.setHours(23,59,59,999)).toISOString();
 
 const fechaHoy = inicio.split("T")[0];
+
 
 /* CONSULTAS */
 
@@ -473,15 +581,20 @@ const {data:pendientes} = await supabaseClient
 .eq("estado","pendiente");
 
 if(error){
+
 alert("Error al obtener datos");
+
 return;
+
 }
+
 
 /* =========================
    FORMATEO
 ========================= */
 
 const formatear = (data) => data.map(s => ({
+
 Empleado: s.empleado,
 Bata: s.bata,
 Desperfecto: s.desperfecto,
@@ -489,10 +602,14 @@ Detalle: s.detalle || "",
 Resultado: s.resultado || "",
 Estado: s.estado,
 Fecha: new Date(s.hora).toLocaleString()
+
 }));
 
+
 const hoyData = formatear(datosHoy);
+
 const pendientesData = formatear(pendientes);
+
 
 /* =========================
    CREAR EXCEL
@@ -500,27 +617,13 @@ const pendientesData = formatear(pendientes);
 
 const wb = XLSX.utils.book_new();
 
+
 /* ===== HOJA HOY ===== */
 
 const wsHoy = XLSX.utils.json_to_sheet(hoyData);
 
 wsHoy["!cols"] = [
-{wch:15}, // empleado
-{wch:10}, // bata
-{wch:20}, // desperfecto
-{wch:25}, // detalle
-{wch:15}, // resultado
-{wch:15}, // estado
-{wch:20}  // fecha
-];
 
-wsHoy["!autofilter"] = { ref: "A1:G1" };
-
-/* ===== HOJA PENDIENTES ===== */
-
-const wsPendientes = XLSX.utils.json_to_sheet(pendientesData);
-
-wsPendientes["!cols"] = [
 {wch:15},
 {wch:10},
 {wch:20},
@@ -528,16 +631,39 @@ wsPendientes["!cols"] = [
 {wch:15},
 {wch:15},
 {wch:20}
+
+];
+
+wsHoy["!autofilter"] = { ref: "A1:G1" };
+
+
+/* ===== HOJA PENDIENTES ===== */
+
+const wsPendientes = XLSX.utils.json_to_sheet(pendientesData);
+
+wsPendientes["!cols"] = [
+
+{wch:15},
+{wch:10},
+{wch:20},
+{wch:25},
+{wch:15},
+{wch:15},
+{wch:20}
+
 ];
 
 wsPendientes["!autofilter"] = { ref: "A1:G1" };
+
 
 /* =========================
    AGREGAR HOJAS
 ========================= */
 
 XLSX.utils.book_append_sheet(wb, wsHoy, "Hoy");
+
 XLSX.utils.book_append_sheet(wb, wsPendientes, "Pendientes");
+
 
 /* =========================
    DESCARGAR
@@ -546,6 +672,122 @@ XLSX.utils.book_append_sheet(wb, wsPendientes, "Pendientes");
 XLSX.writeFile(wb, "reporte_hoy_"+fechaHoy+".xlsx");
 
 }
+
+
+/* =========================
+   EXCEL ÚLTIMAS 3 SEMANAS
+========================= */
+
+window.descargarExcelTresSemanas = async function(){
+
+let hoy = new Date();
+
+
+/* FECHA INICIO: HACE 21 DÍAS */
+
+let fechaInicio = new Date(hoy);
+
+fechaInicio.setDate(fechaInicio.getDate() - 21);
+
+fechaInicio.setHours(0,0,0,0);
+
+
+/* FECHA FINAL: HOY */
+
+let fechaFin = new Date(hoy);
+
+fechaFin.setHours(23,59,59,999);
+
+
+const inicio = fechaInicio.toISOString();
+
+const fin = fechaFin.toISOString();
+
+
+/* CONSULTAR SOLICITUDES */
+
+const {data, error} = await supabaseClient
+.from("solicitudes")
+.select("*")
+.gte("hora",inicio)
+.lte("hora",fin)
+.order("hora",{ascending:false});
+
+
+if(error){
+
+console.error(error);
+
+alert("Error al obtener las solicitudes");
+
+return;
+
+}
+
+
+/* FORMATEAR */
+
+const solicitudesData = data.map(s => ({
+
+Empleado: s.empleado,
+Bata: s.bata,
+Desperfecto: s.desperfecto,
+Detalle: s.detalle || "",
+Resultado: s.resultado || "",
+Estado: s.estado,
+Fecha: new Date(s.hora).toLocaleString()
+
+}));
+
+
+/* CREAR EXCEL */
+
+const wb = XLSX.utils.book_new();
+
+const ws = XLSX.utils.json_to_sheet(solicitudesData);
+
+
+/* ANCHO DE COLUMNAS */
+
+ws["!cols"] = [
+
+{wch:15},
+{wch:10},
+{wch:20},
+{wch:25},
+{wch:15},
+{wch:15},
+{wch:20}
+
+];
+
+
+/* FILTRO */
+
+ws["!autofilter"] = { ref:"A1:G1" };
+
+
+/* AGREGAR HOJA */
+
+XLSX.utils.book_append_sheet(
+wb,
+ws,
+"Solicitudes"
+);
+
+
+/* NOMBRE DEL ARCHIVO */
+
+const fechaHoy = hoy.toISOString().split("T")[0];
+
+XLSX.writeFile(
+wb,
+"solicitudes_ultimas_3_semanas_"+fechaHoy+".xlsx"
+);
+
+}
+
+
 /* =========================
    BLOQUEO EXCEL
 ========================= */
@@ -553,11 +795,13 @@ XLSX.writeFile(wb, "reporte_hoy_"+fechaHoy+".xlsx");
 async function verificarDescargaGlobal(){
 
 const ahora = new Date();
+
 if(ahora.getHours() < 5) return;
 
 const usuario = localStorage.getItem("usuario");
 
 let ayer = new Date();
+
 ayer.setDate(ayer.getDate() - 1);
 
 const fechaAyer = ayer.toISOString().split("T")[0];
@@ -569,9 +813,13 @@ const {data} = await supabaseClient
 .eq("usuario",usuario);
 
 if(!data || data.length === 0){
+
 document.getElementById("bloqueoExcel").style.display="flex";
+
 }
+
 }
+
 
 /* =========================
    INICIO
@@ -580,12 +828,17 @@ document.getElementById("bloqueoExcel").style.display="flex";
 window.addEventListener("DOMContentLoaded", async () => {
 
 await verificarUsuario();
+
 await verificarAdmin();
+
 await cargarInventario();
+
 await cargarSolicitudes();
+
 await verificarDescargaGlobal();
 
 });
+
 
 /* =========================
    REALTIME
@@ -594,24 +847,40 @@ await verificarDescargaGlobal();
 supabaseClient
 .channel("solicitudes")
 .on("postgres_changes",{
+
 event:"*",
+
 schema:"public",
+
 table:"solicitudes"
+
 },()=>{
+
 console.log("🔄 Actualización realtime");
+
 cargarSolicitudes();
+
 })
 .subscribe();
+
 
 supabaseClient
 .channel("inventario")
 .on("postgres_changes",{
+
 event:"UPDATE",
+
 schema:"public",
+
 table:"inventario"
+
 },payload=>{
+
 punos = payload.new.punos;
+
 bordado = payload.new.bordado;
+
 actualizarInventarioUI();
+
 })
 .subscribe();
