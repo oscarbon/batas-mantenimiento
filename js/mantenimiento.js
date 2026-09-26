@@ -675,7 +675,7 @@ XLSX.writeFile(wb, "reporte_hoy_"+fechaHoy+".xlsx");
 
 
 /* =========================
-   EXCEL ÚLTIMAS 3 SEMANAS
+   EXCEL ÚLTIMAS 4 SEMANAS
 ========================= */
 
 window.descargarExcelTresSemanas = async function(){
@@ -683,11 +683,11 @@ window.descargarExcelTresSemanas = async function(){
 let hoy = new Date();
 
 
-/* FECHA INICIO: HACE 21 DÍAS */
+/* FECHA INICIO: HACE 28 DÍAS */
 
 let fechaInicio = new Date(hoy);
 
-fechaInicio.setDate(fechaInicio.getDate() - 21);
+fechaInicio.setDate(fechaInicio.getDate() - 28);
 
 fechaInicio.setHours(0,0,0,0);
 
