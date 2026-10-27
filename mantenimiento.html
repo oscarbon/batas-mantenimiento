@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 
@@ -13,7 +14,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/supabase.js"></script>
 
-<script src="js/mantenimiento.js?v=3"></script>
+<script src="js/mantenimiento.js?v=4"></script>
 
 <link rel="stylesheet" href="css/estilos.css">
 
@@ -21,7 +22,7 @@
 
 <body>
 
-<!--  BLOQUEO -->
+<!-- BLOQUEO -->
 <div id="bloqueoExcel" style="
 display:none;
 position:fixed;
@@ -44,19 +45,19 @@ flex-direction:column;
 
 <!-- HEADER -->
 <button class="btn-logout" onclick="logout()">
- Cerrar sesión
+⏻ Cerrar sesión
 </button>
 
 <button id="btnExcelAdmin" style="display:none;">
- Descargar Excel (Admin)
+📥 Descargar Excel (Admin)
 </button>
 
 <button class="btn btn-hoy" onclick="window.descargarExcelHoy()">
- Excel de Hoy
+📅 Excel de Hoy
 </button>
 
 <button class="btn btn-hoy" onclick="window.descargarExcelTresSemanas()">
- Excel - Últimas 4 Semanas
+📊 Excel - Últimas 4 Semanas
 </button>
 
 <h2>Panel de Mantenimiento</h2>
@@ -99,6 +100,46 @@ Suministros
 
 <h3 id="contador"></h3>
 <div id="contenedor"></div>
+
+<!-- VENTANA PARA CANCELAR SOLICITUD -->
+<div id="modalCancelar" class="modal-cancelar" style="display:none;">
+
+  <div class="modal-cancelar-contenido">
+
+    <h3>Cancelar solicitud</h3>
+
+    <p>Escribe el motivo de la cancelación</p>
+
+    <textarea
+      id="razonCancelacion"
+      placeholder="Motivo de la cancelación..."
+      rows="4"
+      maxlength="1000"
+    ></textarea>
+
+    <div class="modal-cancelar-botones">
+
+      <button
+        type="button"
+        class="btn btn-danger"
+        onclick="confirmarCancelacion()"
+      >
+        Aceptar
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-gray"
+        onclick="cerrarModalCancelar()"
+      >
+        Cancelar
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
 
 </body>
 </html>
