@@ -788,37 +788,58 @@ wb,
 }
 
 
+
 /* =========================
    BLOQUEO EXCEL
 ========================= */
 
 async function verificarDescargaGlobal(){
 
-const ahora = new Date();
+  const ahora = new Date();
 
-if(ahora.getHours() < 5) return;
+  // Antes de las 5:00 a. m. no se exige la descarga
+  if(ahora.getHours() < 5) return;
 
-const usuario = localStorage.getItem("usuario");
+  const usuario = localStorage.getItem("usuario");
 
-let ayer = new Date();
+  if(!usuario){
+    console.error("No se encontró el usuario de la sesión.");
+    return;
+  }
 
-ayer.setDate(ayer.getDate() - 1);
+  // Obtener la fecha de ayer en horario local
+  const ayer = new Date();
+  ayer.setDate(ayer.getDate() - 1);
 
-const fechaAyer = ayer.toISOString().split("T")[0];
+  const fechaAyer = [
+    ayer.getFullYear(),
+    String(ayer.getMonth() + 1).padStart(2, "0"),
+    String(ayer.getDate()).padStart(2, "0")
+  ].join("-");
 
-const {data} = await supabaseClient
-.from("reportes_descargados")
-.select("*")
-.eq("fecha",fechaAyer)
-.eq("usuario",usuario);
+  // Comprobar si ese usuario descargó el reporte de ayer
+  const { data, error } = await supabaseClient
+    .from("reportes_descargados")
+    .select("id")
+    .eq("fecha", fechaAyer)
+    .eq("usuario", usuario);
 
-if(!data || data.length === 0){
+  if(error){
+    console.error("Error al verificar la descarga:", error);
+    alert("No se pudo verificar la descarga del Excel. Intenta recargar la página.");
+    return;
+  }
 
-document.getElementById("bloqueoExcel").style.display="flex";
+  const bloqueo = document.getElementById("bloqueoExcel");
+
+  if(!data || data.length === 0){
+    bloqueo.style.display = "flex";
+  }else{
+    bloqueo.style.display = "none";
+  }
 
 }
 
-}
 
 
 /* =========================
