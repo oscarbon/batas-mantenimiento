@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 
@@ -21,7 +22,7 @@
 
 <body>
 
-<!-- 🔒 BLOQUEO -->
+<!-- BLOQUEO -->
 <div id="bloqueoExcel" style="
 display:none;
 position:fixed;
@@ -42,7 +43,7 @@ flex-direction:column;
 
 </div>
 
-<!-- 🔐 HEADER -->
+<!-- HEADER -->
 <button class="btn-logout" onclick="logout()">
 ⏻ Cerrar sesión
 </button>
@@ -99,6 +100,46 @@ Suministros
 
 <h3 id="contador"></h3>
 <div id="contenedor"></div>
+
+<!-- VENTANA PARA CANCELAR SOLICITUD -->
+<div id="modalCancelar" class="modal-cancelar" style="display:none;">
+
+  <div class="modal-cancelar-contenido">
+
+    <h3>Cancelar solicitud</h3>
+
+    <p>Escribe el motivo de la cancelación</p>
+
+    <textarea
+      id="razonCancelacion"
+      placeholder="Motivo de la cancelación..."
+      rows="4"
+      maxlength="1000"
+    ></textarea>
+
+    <div class="modal-cancelar-botones">
+
+      <button
+        type="button"
+        class="btn btn-danger"
+        onclick="confirmarCancelacion()"
+      >
+        Aceptar
+      </button>
+
+      <button
+        type="button"
+        class="btn btn-gray"
+        onclick="cerrarModalCancelar()"
+      >
+        Cancelar
+      </button>
+
+    </div>
+
+  </div>
+
+</div>
 
 </body>
 </html>
