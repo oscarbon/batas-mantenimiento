@@ -201,6 +201,24 @@ actualizarInventarioUI();
 
 
 /* =========================
+   FECHAS Y FORMATO PARA EXCEL
+========================= */
+
+function fechaLocalISO(fecha){
+return [
+fecha.getFullYear(),
+String(fecha.getMonth()+1).padStart(2,"0"),
+String(fecha.getDate()).padStart(2,"0")
+].join("-");
+}
+
+function estadoParaExcel(estado){
+if(estado === "cancelado") return "Cancelada";
+return estado || "";
+}
+
+
+/* =========================
    SOLICITUDES
 ========================= */
 
@@ -259,10 +277,7 @@ ${s.temporal?
 
 }
 
-<button
-class="btn btn-cancelar-solicitud"
-onclick="cancelarSolicitud('${s.id}')"
->
+<button class="btn btn-cancelar-solicitud" onclick="cancelarSolicitud('${s.id}')">
 Cancelar solicitud
 </button>
 
@@ -351,7 +366,7 @@ razon_cancelacion:motivo
 
 if(error){
 console.error(error);
-alert("No se pudo cancelar la solicitud.");
+alert("No se pudo cancelar la solicitud. Verifica que exista la columna razon_cancelacion en Supabase.");
 return;
 }
 
@@ -437,21 +452,6 @@ window.procesando = false;
 
 
 /* =========================
-   FORMATO COMÚN DE ESTADO
-========================= */
-
-function estadoParaExcel(estado){
-
-if(estado === "cancelado"){
-return "Cancelada";
-}
-
-return estado || "";
-
-}
-
-
-/* =========================
    EXCEL AYER
 ========================= */
 
@@ -465,11 +465,16 @@ let ayer = new Date();
 
 ayer.setDate(ayer.getDate() - 1);
 
-const inicio = new Date(ayer.setHours(0,0,0,0)).toISOString();
+const fechaAyer = fechaLocalISO(ayer);
 
-const fin = new Date(ayer.setHours(23,59,59,999)).toISOString();
+let fechaInicio = new Date(ayer);
+fechaInicio.setHours(0,0,0,0);
 
-const fechaAyer = inicio.split("T")[0];
+let fechaFin = new Date(ayer);
+fechaFin.setHours(23,59,59,999);
+
+const inicio = fechaInicio.toISOString();
+const fin = fechaFin.toISOString();
 
 
 /* CONSULTAS */
@@ -487,7 +492,7 @@ const {data:pendientes,error:errorPendientes} = await supabaseClient
 
 if(errorHoy || errorPendientes){
 console.error(errorHoy || errorPendientes);
-alert("Error al obtener los datos para el Excel.");
+alert("Error al obtener los datos del Excel.");
 return;
 }
 
@@ -508,7 +513,6 @@ MotivoCancelacion: s.razon_cancelacion || ""
 
 
 const hoyData = formatear(datosHoy);
-
 const pendientesData = formatear(pendientes);
 
 
@@ -522,7 +526,9 @@ const resumen = [
 
 {Tipo:"Botones", Cantidad:hoyData.filter(d=>d.Desperfecto==="Botones").length},
 
-{Tipo:"Pendientes", Cantidad:pendientesData.length},
+{Tipo:"Pendientes", Cantidad:pendientesData.filter(d=>d.Estado==="pendiente").length},
+
+{Tipo:"Canceladas", Cantidad:hoyData.filter(d=>d.Estado==="Cancelada").length},
 
 {Tipo:"TOTAL", Cantidad:hoyData.length}
 
@@ -627,9 +633,7 @@ fill:{ fgColor:{ rgb:"FFCCCC"}}
 /* AGREGAR HOJAS */
 
 XLSX.utils.book_append_sheet(wb, wsResumen, "Resumen");
-
 XLSX.utils.book_append_sheet(wb, wsHoy, "Hoy");
-
 XLSX.utils.book_append_sheet(wb, wsPendientes, "Pendientes");
 
 
@@ -667,16 +671,21 @@ window.descargarExcelHoy = async function(){
 
 let hoy = new Date();
 
-const inicio = new Date(hoy.setHours(0,0,0,0)).toISOString();
+let fechaInicio = new Date(hoy);
+fechaInicio.setHours(0,0,0,0);
 
-const fin = new Date(hoy.setHours(23,59,59,999)).toISOString();
+let fechaFin = new Date(hoy);
+fechaFin.setHours(23,59,59,999);
 
-const fechaHoy = inicio.split("T")[0];
+const inicio = fechaInicio.toISOString();
+const fin = fechaFin.toISOString();
+
+const fechaHoy = fechaLocalISO(hoy);
 
 
 /* CONSULTAS */
 
-const {data:datosHoy,error} = await supabaseClient
+const {data:datosHoy, error} = await supabaseClient
 .from("solicitudes")
 .select("*")
 .gte("hora",inicio)
@@ -714,7 +723,6 @@ MotivoCancelacion: s.razon_cancelacion || ""
 
 
 const hoyData = formatear(datosHoy);
-
 const pendientesData = formatear(pendientes);
 
 
@@ -762,7 +770,6 @@ wsPendientes["!autofilter"] = { ref: "A1:H1" };
 /* AGREGAR HOJAS */
 
 XLSX.utils.book_append_sheet(wb, wsHoy, "Hoy");
-
 XLSX.utils.book_append_sheet(wb, wsPendientes, "Pendientes");
 
 
@@ -774,7 +781,7 @@ XLSX.writeFile(wb, "reporte_hoy_"+fechaHoy+".xlsx");
 
 
 /* =========================
-   EXCEL ÚLTIMAS 3 SEMANAS
+   EXCEL ÚLTIMAS 4 SEMANAS
 ========================= */
 
 window.descargarExcelTresSemanas = async function(){
@@ -782,11 +789,11 @@ window.descargarExcelTresSemanas = async function(){
 let hoy = new Date();
 
 
-/* FECHA INICIO: HACE 21 DÍAS */
+/* FECHA INICIO: HACE 28 DÍAS */
 
 let fechaInicio = new Date(hoy);
 
-fechaInicio.setDate(fechaInicio.getDate() - 21);
+fechaInicio.setDate(fechaInicio.getDate() - 28);
 
 fechaInicio.setHours(0,0,0,0);
 
@@ -799,13 +806,12 @@ fechaFin.setHours(23,59,59,999);
 
 
 const inicio = fechaInicio.toISOString();
-
 const fin = fechaFin.toISOString();
 
 
 /* CONSULTAR SOLICITUDES */
 
-const {data,error} = await supabaseClient
+const {data, error} = await supabaseClient
 .from("solicitudes")
 .select("*")
 .gte("hora",inicio)
@@ -816,9 +822,7 @@ const {data,error} = await supabaseClient
 if(error){
 
 console.error(error);
-
 alert("Error al obtener las solicitudes");
-
 return;
 
 }
@@ -826,7 +830,7 @@ return;
 
 /* FORMATEAR */
 
-const solicitudesData = data.map(s => ({
+const solicitudesData = (data || []).map(s => ({
 
 Empleado: s.empleado,
 Bata: s.bata,
@@ -843,7 +847,6 @@ MotivoCancelacion: s.razon_cancelacion || ""
 /* CREAR EXCEL */
 
 const wb = XLSX.utils.book_new();
-
 const ws = XLSX.utils.json_to_sheet(solicitudesData);
 
 
@@ -868,20 +871,16 @@ ws["!autofilter"] = { ref:"A1:H1" };
 
 /* AGREGAR HOJA */
 
-XLSX.utils.book_append_sheet(
-wb,
-ws,
-"Solicitudes"
-);
+XLSX.utils.book_append_sheet(wb,ws,"Solicitudes");
 
 
 /* NOMBRE DEL ARCHIVO */
 
-const fechaHoy = hoy.toISOString().split("T")[0];
+const fechaHoy = fechaLocalISO(hoy);
 
 XLSX.writeFile(
 wb,
-"solicitudes_ultimas_3_semanas_"+fechaHoy+".xlsx"
+"solicitudes_ultimas_4_semanas_"+fechaHoy+".xlsx"
 );
 
 };
@@ -900,26 +899,24 @@ if(ahora.getHours() < 5) return;
 const usuario = localStorage.getItem("usuario");
 
 let ayer = new Date();
-
 ayer.setDate(ayer.getDate() - 1);
 
-const fechaAyer = ayer.toISOString().split("T")[0];
+const fechaAyer = fechaLocalISO(ayer);
 
 const {data,error} = await supabaseClient
 .from("reportes_descargados")
-.select("*")
+.select("fecha,usuario")
 .eq("fecha",fechaAyer)
 .eq("usuario",usuario);
 
 if(error){
-console.error(error);
+console.error("Error al verificar la descarga del Excel:",error);
+alert("No se pudo verificar la descarga del Excel. Recarga la página o contacta al administrador.");
 return;
 }
 
 if(!data || data.length === 0){
-
 document.getElementById("bloqueoExcel").style.display="flex";
-
 }
 
 }
@@ -945,50 +942,31 @@ await verificarDescargaGlobal();
 
 
 /* =========================
-   REALTIME SOLICITUDES
+   REALTIME
 ========================= */
 
 supabaseClient
 .channel("solicitudes")
 .on("postgres_changes",{
-
 event:"*",
-
 schema:"public",
-
 table:"solicitudes"
-
 },()=>{
-
 console.log("🔄 Actualización realtime");
-
 cargarSolicitudes();
-
 })
 .subscribe();
 
 
-/* =========================
-   REALTIME INVENTARIO
-========================= */
-
 supabaseClient
 .channel("inventario")
 .on("postgres_changes",{
-
 event:"UPDATE",
-
 schema:"public",
-
 table:"inventario"
-
 },payload=>{
-
 punos = payload.new.punos;
-
 bordado = payload.new.bordado;
-
 actualizarInventarioUI();
-
 })
 .subscribe();
